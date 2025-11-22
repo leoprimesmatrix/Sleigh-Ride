@@ -28,7 +28,8 @@ export class SoundManager {
       const tracks = [
           { id: 'wonderland', src: './wonderland.mp3' },
           { id: 'gray_world', src: './gray_world.mp3' },
-          { id: 'ocean_of_silence', src: './ocean_of_silence.mp3' }
+          { id: 'ocean_of_silence', src: './ocean_of_silence.mp3' },
+          { id: 'great_blizzard', src: './great_blizzard.mp3' }
       ];
 
       tracks.forEach(t => {
@@ -80,10 +81,12 @@ export class SoundManager {
       // Level 0: Departure -> wonderland
       // Level 1: Gray World -> gray_world
       // Level 2: Ocean -> ocean_of_silence
-      // Level 3 (Blizzard) & 4 (Finale) -> Silence/Wind (handled by fading out current)
+      // Level 3: Blizzard -> great_blizzard
+      // Level 4 (Finale) -> Silence (handled by fading out current, then ending.mp3 takes over)
       if (levelIndex === 0) trackKey = 'wonderland';
       else if (levelIndex === 1) trackKey = 'gray_world';
       else if (levelIndex === 2) trackKey = 'ocean_of_silence';
+      else if (levelIndex === 3) trackKey = 'great_blizzard';
       
       this.transitionBgm(trackKey);
   }

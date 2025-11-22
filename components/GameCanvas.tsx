@@ -433,12 +433,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
 
       if (isEndingSequenceRef.current) {
-          
+          // Silence the sleigh during the entire ending sequence to let ending.mp3 take center stage
+          soundManager.setSleighVolume(0);
+
           if (joyRideModeRef.current) {
               // --- PHASE 2: THE JOY RIDE (Post-Gift) ---
               currentSpeed = BASE_SPEED * 3; // Go fast!
               joyRideTimerRef.current -= dt;
-              soundManager.setSleighVolume(currentSpeed);
               
               // Auto-Pilot loop de loops
               player.y = 250 + Math.sin(timestamp / 400) * 80;
@@ -452,7 +453,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
           } else {
               // --- PHASE 1: THE FINAL DELIVERY (Pre-Gift) ---
-              soundManager.setSleighVolume(0); // Silence sleigh for moment
               player.vy = 0;
               player.y += (200 - player.y) * 0.05 * timeScale; // Move to center
               
@@ -474,7 +474,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
            soundManager.setSleighVolume(currentSpeed);
       }
 
-      if (gameMode === GameMode.STORY && timeRef.current < 30 && Math.floor(timeRef.current) !== Math.floor(timeRef.current + dt) && !joyRideModeRef.current) {
+      if (gameMode === GameMode.STORY && timeRef.current < 30 && Math.floor(timeRef.current) !== Math.floor(timeRef.current + dt) && !isEndingSequenceRef.current) {
          soundManager.playTimeWarning();
       }
 
