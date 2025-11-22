@@ -444,30 +444,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               player.y = 250 + Math.sin(timestamp / 400) * 80;
               player.angle = Math.sin(timestamp / 400) * 0.2;
               
-              // Spawn Cheering Hearts & Fireworks (Throttled)
-              // Only spawn if particle count is safe (< 400) to prevent freezing
-              if (particlesRef.current.length < 800) { // Increased limit for grand finale
-                  // Hearts: 30% chance per frame approx
-                  if (Math.random() < 0.3) { 
-                      createParticles(Math.random() * CANVAS_WIDTH, CANVAS_HEIGHT, ParticleType.LIFE, 1, Math.random() > 0.5 ? '#f43f5e' : '#fbbf24');
-                      const lastP = particlesRef.current[particlesRef.current.length-1];
-                      if (lastP) {
-                        lastP.vy = -10 - Math.random() * 10; // Shoot up fast
-                        lastP.life = 2.0;
-                      }
-                  }
-
-                  // Fireworks: 25% chance per frame for grand finale
-                  if (Math.random() < 0.25) {
-                      createFirework(Math.random() * CANVAS_WIDTH, Math.random() * (CANVAS_HEIGHT / 2));
-                  }
-
-                  // God Ray Glow: 10% chance
-                  if (Math.random() < 0.1) {
-                      createParticles(player.x, player.y, ParticleType.GLOW, 1, '#fde047');
-                  }
-              }
-              
               // End Game
               if (joyRideTimerRef.current <= 0) {
                    setGameState(GameState.VICTORY);
