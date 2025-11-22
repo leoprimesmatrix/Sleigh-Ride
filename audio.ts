@@ -14,11 +14,30 @@ export class SoundManager {
   private endingAudio: HTMLAudioElement | null = null;
   private musicFadeInterval: number | null = null;
 
+  // Biome Music
+  private bgmTracks: Map<string, HTMLAudioElement> = new Map();
+  private currentBgm: HTMLAudioElement | null = null;
+
   constructor() {
     if (typeof Audio !== 'undefined') {
       this.endingAudio = new Audio('./ending.mp3');
       this.endingAudio.volume = 0; // Start at 0 for fade-in
       this.endingAudio.preload = 'auto';
+
+      // Initialize Biome Tracks
+      const tracks = [
+          { id: 'wonderland', src: './wonderland.mp3' },
+          { id: 'gray_world', src: './gray_world.mp3' },
+          { id: 'ocean_of_silence', src: './ocean_of_silence.mp3' }
+      ];
+
+      tracks.forEach(t => {
+          const audio = new Audio(t.src);
+          audio.loop = true;
+          audio.volume = 0;
+          audio.preload = 'auto';
+          this.bgmTracks.set(t.id, audio);
+      });
     }
   }
 
@@ -43,14 +62,80 @@ export class SoundManager {
 
     this.startSleighLoop();
     
-    // Unlock ending audio on user interaction just in case
-    if (this.endingAudio) {
-        this.endingAudio.load();
-    }
+    // Unlock audio elements
+    if (this.endingAudio) this.endingAudio.load();
+    this.bgmTracks.forEach(track => track.load());
   }
 
   reset() {
     this.stopEndingMusic();
+    this.stopBgm();
+  }
+
+  // --- BGM Logic ---
+
+  playLevelBgm(levelIndex: number) {
+      let trackKey: string | null = null;
+      // Map levels to tracks. 
+      // Level 0: Departure -> wonderland
+      // Level 1: Gray World -> gray_world
+      // Level 2: Ocean -> ocean_of_silence
+      // Level 3 (Blizzard) & 4 (Finale) -> Silence/Wind (handled by fading out current)
+      if (levelIndex === 0) trackKey = 'wonderland';
+      else if (levelIndex === 1) trackKey = 'gray_world';
+      else if (levelIndex === 2) trackKey = 'ocean_of_silence';
+      
+      this.transitionBgm(trackKey);
+  }
+
+  stopBgm() {
+      this.transitionBgm(null);
+  }
+
+  private transitionBgm(trackKey: string | null) {
+      const newTrack = trackKey ? this.bgmTracks.get(trackKey) : null;
+      
+      if (this.currentBgm === newTrack) return; // Already playing this track
+
+      // Fade out current
+      if (this.currentBgm) {
+          const oldTrack = this.currentBgm;
+          this.fadeVolume(oldTrack, 0, 1500, () => {
+              oldTrack.pause();
+              oldTrack.currentTime = 0;
+          });
+      }
+
+      // Fade in new
+      if (newTrack) {
+          newTrack.volume = 0;
+          newTrack.play().catch(e => console.warn("BGM play failed", e));
+          this.fadeVolume(newTrack, 0.3, 1500); // Target volume 0.3
+          this.currentBgm = newTrack;
+      } else {
+          this.currentBgm = null;
+      }
+  }
+
+  private fadeVolume(audio: HTMLAudioElement, target: number, duration: number, onComplete?: () => void) {
+      const stepTime = 50;
+      const steps = duration / stepTime;
+      const diff = target - audio.volume;
+      const stepVol = diff / steps;
+      
+      const interval = setInterval(() => {
+          let newVol = audio.volume + stepVol;
+          // Clamp
+          newVol = Math.max(0, Math.min(1, newVol));
+          audio.volume = newVol;
+          
+          // Check completion (accounting for float precision)
+          if ((stepVol >= 0 && newVol >= target) || (stepVol < 0 && newVol <= target)) {
+              audio.volume = target;
+              clearInterval(interval);
+              if (onComplete) onComplete();
+          }
+      }, stepTime);
   }
 
   // --- SFX Generators ---
@@ -176,6 +261,9 @@ export class SoundManager {
         console.warn("Ending audio element not initialized");
         return;
     }
+    
+    // Stop any active BGM first
+    this.stopBgm();
     
     console.log(`Triggering ending music with fade.`);
     

@@ -118,11 +118,13 @@ const App: React.FC = () => {
       {gameState === GameState.MENU && !isLoading && (
         <div className="text-center space-y-2 md:space-y-4 animate-fade-in w-full max-w-2xl my-auto py-2">
           <div className="w-full flex justify-center px-4">
-             <img 
-               src="./logo.png" 
-               alt="Sleigh Ride" 
-               className="block w-full max-w-[80%] md:max-w-[500px] h-auto drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)] animate-bounce-slow hover:scale-105 transition-transform duration-500 object-contain"
-             />
+             <div className="animate-bounce-slow w-full flex justify-center">
+                 <img 
+                   src="./logo.png" 
+                   alt="Sleigh Ride" 
+                   className="block w-full max-w-[80%] md:max-w-[500px] h-auto hover:scale-105 transition-transform duration-500 object-contain"
+                 />
+             </div>
           </div>
           <p className="text-lg md:text-xl text-blue-200 font-bold tracking-widest uppercase">Deliver the Presents. Save Christmas.</p>
           

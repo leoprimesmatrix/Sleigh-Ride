@@ -69,7 +69,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const starsRef = useRef<{x:number, y:number, size:number, phase:number}[]>([]);
   const bgCloudsRef = useRef<{x:number, y:number, speed:number, scale:number, opacity: number}[]>([]);
   const bgTreesRef = useRef<boolean[][]>([[], [], []]); 
-  const citySkylineRef = useRef<{x:number, width:number, height:number}[]>([]);
+  const citySkylineRef = useRef<{x:number, width:number, height:number, windows: {x:number, y:number}[]}[]>([]);
+  const distantCitySkylineRef = useRef<{x:number, width:number, height:number, windows: {x:number, y:number}[]}[]>([]);
   const flashTimerRef = useRef(0); 
   const pausedTimeRef = useRef(0); 
 
@@ -81,6 +82,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const joyRideModeRef = useRef(false);
   const joyRideTimerRef = useRef(0);
   const masterGiftDroppedRef = useRef(false);
+  const cutsceneExplosionTriggeredRef = useRef(false); // SAFETY REF
 
   // Queues for HUD
   const collectedPowerupsRef = useRef<{ id: number; type: PowerupType }[]>([]);
@@ -96,6 +98,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const lastFrameTimeRef = useRef(0);
   const shakeRef = useRef(0);
   const triggeredStoryMomentsRef = useRef<Set<string>>(new Set());
+  const lastLevelIndexRef = useRef(-1); // Track level changes for audio triggers
   
   // Parallax Layers
   const bgLayersRef = useRef<BackgroundLayer[]>([
@@ -106,6 +109,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
   // Initial Background Generation
   useEffect(() => {
+    citySkylineRef.current = []; // Clear specifically on mount to prevent double rendering issues
+    distantCitySkylineRef.current = [];
+
     const generateTerrain = (amplitude: number, roughness: number) => {
         const points = [];
         let y = 0;
@@ -145,16 +151,44 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         });
     }
     
-    // Generate City Skyline for Joy Ride
+    // Generate Foreground City Skyline for Joy Ride
     let cx = 0;
     while(cx < CANVAS_WIDTH + 200) {
-        const w = Math.random() * 40 + 30;
+        const w = Math.random() * 40 + 40;
+        const h = Math.random() * 150 + 100;
+        const windows = [];
+        for(let wx=10; wx<w-10; wx+=15) {
+            for(let wy=20; wy<h-20; wy+=25) {
+                if(Math.random() > 0.3) windows.push({x: wx, y: wy});
+            }
+        }
         citySkylineRef.current.push({
             x: cx,
             width: w,
-            height: Math.random() * 150 + 100
+            height: h,
+            windows
         });
         cx += w + 5;
+    }
+
+    // Generate Distant City Skyline (Horizon)
+    let dcx = 0;
+    while(dcx < CANVAS_WIDTH + 200) {
+        const w = Math.random() * 60 + 60; // Wider buildings
+        const h = Math.random() * 80 + 40; // Shorter (distant)
+        const windows = [];
+        for(let wx=5; wx<w-5; wx+=8) {
+            for(let wy=10; wy<h-10; wy+=12) {
+                if(Math.random() > 0.7) windows.push({x: wx, y: wy}); // Fewer lights
+            }
+        }
+        distantCitySkylineRef.current.push({
+            x: dcx,
+            width: w,
+            height: h,
+            windows
+        });
+        dcx += w - 2; // More overlap
     }
 
   }, []);
@@ -221,6 +255,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     soundManager.reset(); 
     return () => {
         soundManager.stopEndingMusic();
+        soundManager.stopBgm();
     };
   }, []);
 
@@ -298,9 +333,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       joyRideModeRef.current = false;
       joyRideTimerRef.current = 0;
       masterGiftDroppedRef.current = false;
+      cutsceneExplosionTriggeredRef.current = false;
+      
+      // Reset Music
+      lastLevelIndexRef.current = -1;
+      soundManager.stopBgm();
     };
 
-    // Robust Reset Logic: Reset if we are starting Intro (new run) OR if we are in PLAYING state but the player is technically dead (retry)
+    // Robust Reset Logic
     if (gameState === GameState.INTRO || (gameState === GameState.PLAYING && playerRef.current.lives <= 0)) {
         resetGame();
     }
@@ -401,18 +441,35 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               soundManager.setSleighVolume(currentSpeed);
               
               // Auto-Pilot loop de loops
-              player.y = 200 + Math.sin(timestamp / 300) * 100;
-              player.angle = Math.sin(timestamp / 300) * 0.3;
+              player.y = 250 + Math.sin(timestamp / 400) * 80;
+              player.angle = Math.sin(timestamp / 400) * 0.2;
               
-              // Spawn Cheering Hearts
-              if (Math.random() < 0.3) {
-                  createParticles(Math.random() * CANVAS_WIDTH, CANVAS_HEIGHT, ParticleType.LIFE, 1, '#f43f5e');
-                  particlesRef.current[particlesRef.current.length-1].vy = -5 - Math.random() * 5; // Shoot up
+              // Spawn Cheering Hearts & Fireworks (Throttled)
+              // Only spawn if particle count is safe (< 400) to prevent freezing
+              if (particlesRef.current.length < 800) { // Increased limit for grand finale
+                  // Hearts: 30% chance per frame approx
+                  if (Math.random() < 0.3) { 
+                      createParticles(Math.random() * CANVAS_WIDTH, CANVAS_HEIGHT, ParticleType.LIFE, 1, Math.random() > 0.5 ? '#f43f5e' : '#fbbf24');
+                      const lastP = particlesRef.current[particlesRef.current.length-1];
+                      if (lastP) {
+                        lastP.vy = -10 - Math.random() * 10; // Shoot up fast
+                        lastP.life = 2.0;
+                      }
+                  }
+
+                  // Fireworks: 25% chance per frame for grand finale
+                  if (Math.random() < 0.25) {
+                      createFirework(Math.random() * CANVAS_WIDTH, Math.random() * (CANVAS_HEIGHT / 2));
+                  }
+
+                  // God Ray Glow: 10% chance
+                  if (Math.random() < 0.1) {
+                      createParticles(player.x, player.y, ParticleType.GLOW, 1, '#fde047');
+                  }
               }
               
               // End Game
               if (joyRideTimerRef.current <= 0) {
-                   // Fade out handled by flashTimer usually, or just cut
                    setGameState(GameState.VICTORY);
                    onWin();
               }
@@ -429,13 +486,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                   // Spawn master gift visual
                   createParticles(player.x, player.y, ParticleType.GLOW, 50, 'gold');
                   flashTimerRef.current = 2.0; // Long white flash
-              }
-
-              if (masterGiftDroppedRef.current && flashTimerRef.current < 1.0) {
-                  // Transition to Joy Ride
-                  joyRideModeRef.current = true;
-                  joyRideTimerRef.current = 12.0; // 12 Seconds of celebration
-                  createExplosion(CANVAS_WIDTH/2, CANVAS_HEIGHT/2); // Pop of joy
+                  
+                  // Delayed transition to Joy Ride to allow flash to cover it
+                  setTimeout(() => {
+                       joyRideModeRef.current = true;
+                       joyRideTimerRef.current = 12.0; // 12 Seconds of celebration
+                  }, 500);
               }
           }
       } else {
@@ -460,6 +516,13 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           break;
         }
       }
+      
+      // Audio Transition Logic
+      if (levelIndex !== lastLevelIndexRef.current) {
+          soundManager.playLevelBgm(levelIndex);
+          lastLevelIndexRef.current = levelIndex;
+      }
+      
       const level = LEVELS[levelIndex];
 
       // --- Act Specific Mechanics ---
@@ -649,14 +712,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           if (lm.x + lm.width < -200) lm.markedForDeletion = true;
       });
       
-      // Update City Skyline (Joy Ride only)
+      // Update City Skylines (Joy Ride only)
       if (joyRideModeRef.current) {
+          // Distant City
+          distantCitySkylineRef.current.forEach(city => {
+             city.x -= currentSpeed * 0.15 * timeScale; // Parallax speed
+             if (city.x + city.width < -100) {
+                 city.x = CANVAS_WIDTH + 100;
+                 city.height = Math.random() * 80 + 40;
+                 city.width = Math.random() * 60 + 60;
+                 const windows = [];
+                 for(let wx=5; wx<city.width-5; wx+=8) {
+                    for(let wy=10; wy<city.height-10; wy+=12) {
+                        if(Math.random() > 0.7) windows.push({x: wx, y: wy});
+                    }
+                 }
+                 city.windows = windows;
+             }
+          });
+
+          // Foreground City
           citySkylineRef.current.forEach(city => {
              city.x -= currentSpeed * 0.3 * timeScale;
              if (city.x + city.width < -100) {
                  city.x = CANVAS_WIDTH + 100;
                  city.height = Math.random() * 150 + 100;
-                 city.width = Math.random() * 40 + 30;
+                 city.width = Math.random() * 40 + 40;
+                 // Regen windows
+                 const windows = [];
+                 for(let wx=10; wx<city.width-10; wx+=15) {
+                    for(let wy=20; wy<city.height-20; wy+=25) {
+                        if(Math.random() > 0.3) windows.push({x: wx, y: wy});
+                    }
+                 }
+                 city.windows = windows;
              }
           });
       }
@@ -732,7 +821,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             p.vx *= 0.95; p.vy *= 0.95; p.y -= 0.5 * timeScale;
         }
       });
-      particlesRef.current = particlesRef.current.filter(p => p.life > 0);
+      // Safety Filter: Remove dead OR nan particles
+      particlesRef.current = particlesRef.current.filter(p => p.life > 0 && !isNaN(p.x) && !isNaN(p.y));
 
       obstaclesRef.current = obstaclesRef.current.filter(e => !e.markedForDeletion);
       powerupsRef.current = powerupsRef.current.filter(e => !e.markedForDeletion);
@@ -782,12 +872,41 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         
         // Joy Ride City Skyline
         if (joyRideModeRef.current) {
-            ctx.fillStyle = "#f59e0b"; // Silhouette color matching sunrise
-            ctx.globalAlpha = 0.3;
-            citySkylineRef.current.forEach(b => {
-               ctx.fillRect(b.x, CANVAS_HEIGHT - b.height + 50, b.width, b.height);
+            // Draw Distant Horizon City First
+            distantCitySkylineRef.current.forEach(b => {
+               const by = CANVAS_HEIGHT - b.height + 20;
+               ctx.fillStyle = "#0f172a"; // Very dark blue/slate
+               ctx.fillRect(b.x, by, b.width, b.height);
+               
+               // Tiny Distant Windows
+               ctx.fillStyle = "#fde68a";
+               ctx.globalAlpha = 0.3;
+               b.windows.forEach(w => {
+                   if (Math.sin(timestamp / 400 + w.x) > 0.6) {
+                       ctx.fillRect(b.x + w.x, by + w.y, 3, 4);
+                   }
+               });
+               ctx.globalAlpha = 1.0;
             });
-            ctx.globalAlpha = 1.0;
+
+            // Draw Foreground City
+            citySkylineRef.current.forEach(b => {
+               const by = CANVAS_HEIGHT - b.height + 50;
+               // Draw Building Silhouette
+               ctx.fillStyle = "#f59e0b"; 
+               ctx.globalAlpha = 0.3;
+               ctx.fillRect(b.x, by, b.width, b.height);
+               
+               // Draw Windows (Twinkling)
+               ctx.globalAlpha = 0.6;
+               ctx.fillStyle = "#fef3c7";
+               b.windows?.forEach(w => { // SAFETY CHECK
+                   if (Math.sin(timestamp / 200 + w.x) > 0) { // Random twinkle
+                       ctx.fillRect(b.x + w.x, by + w.y, 5, 8);
+                   }
+               });
+               ctx.globalAlpha = 1.0;
+            });
         }
 
         // Sun/Moon logic
@@ -838,7 +957,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
 
       particlesRef.current.forEach(p => {
-        if (cinematicMode && p.type !== ParticleType.SNOW && p.type !== ParticleType.SHOCKWAVE && p.type !== ParticleType.FIRE) return;
+        if (cinematicMode && p.type !== ParticleType.SNOW && p.type !== ParticleType.SHOCKWAVE && p.type !== ParticleType.FIRE && p.type !== ParticleType.LIFE) return;
         if (promoMode && p.type === ParticleType.SNOW) return;
         ctx.save();
         ctx.globalAlpha = p.alpha;
@@ -915,6 +1034,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   }, [gameState, cinematicMode, promoMode, gameMode]);
 
   // --- Helpers ---
+
+  const createFirework = (x: number, y: number) => {
+      // Burst of colors
+      const colors = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      for(let i=0; i<20; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 30 + 10;
+          particlesRef.current.push({
+            id: Math.random(), type: ParticleType.SPARKLE,
+            x, y, radius: Math.random() * 3 + 2, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+            alpha: 1, color, life: Math.random() * 0.8 + 0.5, maxLife: 1.5, growth: -5
+          });
+      }
+      // Center glow
+      particlesRef.current.push({
+          id: Math.random(), type: ParticleType.GLOW, x, y, radius: 20, vx: 0, vy: 0, alpha: 1, color: 'white', life: 0.5, maxLife: 0.5, growth: 100
+      });
+  };
 
   const createExplosion = (x: number, y: number) => {
       particlesRef.current.push({
@@ -1088,61 +1227,102 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     ctx.restore();
   };
 
+  const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
+      ctx.save(); ctx.translate(lm.x, lm.y);
+      if (lm.type === 'CLOCK_TOWER') {
+          ctx.fillStyle = "#1e293b";
+          ctx.fillRect(0, 0, lm.width, lm.height);
+          // Clock face
+          ctx.fillStyle = "#fef3c7";
+          ctx.beginPath(); ctx.arc(lm.width/2, 60, 40, 0, Math.PI*2); ctx.fill();
+          ctx.strokeStyle = "#000"; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(lm.width/2, 60); ctx.lineTo(lm.width/2, 30); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(lm.width/2, 60); ctx.lineTo(lm.width/2 + 20, 60); ctx.stroke();
+      } else if (lm.type === 'LIGHTHOUSE') {
+           ctx.fillStyle = "#ef4444";
+           ctx.beginPath(); ctx.moveTo(20, lm.height); ctx.lineTo(lm.width-20, lm.height); ctx.lineTo(lm.width/2 + 20, 40); ctx.lineTo(lm.width/2 - 20, 40); ctx.fill();
+           ctx.fillStyle = "#fff"; // Stripes
+           ctx.fillRect(25, lm.height - 100, lm.width - 50, 20);
+           ctx.fillRect(30, lm.height - 200, lm.width - 60, 20);
+           // Light
+           ctx.fillStyle = "yellow"; ctx.globalAlpha = 0.6;
+           ctx.beginPath(); ctx.moveTo(lm.width/2, 40); ctx.lineTo(-200, -100); ctx.lineTo(200, -100); ctx.fill();
+      } else if (lm.type === 'FINAL_HOUSE') {
+           ctx.fillStyle = "#78350f"; // Wood
+           ctx.fillRect(20, lm.height - 150, lm.width - 40, 150);
+           ctx.fillStyle = "#451a03"; // Roof
+           ctx.beginPath(); ctx.moveTo(0, lm.height - 150); ctx.lineTo(lm.width/2, lm.height - 280); ctx.lineTo(lm.width, lm.height - 150); ctx.fill();
+           // Windows
+           ctx.fillStyle = "#fbbf24"; 
+           ctx.fillRect(40, lm.height - 100, 40, 40); ctx.fillRect(lm.width - 80, lm.height - 100, 40, 40);
+      } else {
+          // Generic Building
+          ctx.fillStyle = "#334155";
+          ctx.fillRect(0, 0, lm.width, lm.height);
+          // Windows
+          ctx.fillStyle = "#475569";
+          for(let i=10; i<lm.width-10; i+=20) {
+               for(let j=20; j<lm.height-10; j+=40) {
+                   ctx.fillRect(i, j, 12, 25);
+               }
+          }
+      }
+      ctx.restore();
+  };
+
   const drawPowerup = (ctx: CanvasRenderingContext2D, pup: Powerup) => {
-    const color = POWERUP_COLORS[pup.type]; ctx.save(); ctx.translate(pup.x + pup.width / 2, pup.y + pup.height / 2); ctx.rotate(Math.sin(pup.floatOffset) * 0.1);
-    ctx.shadowColor = color; ctx.shadowBlur = 15; ctx.fillStyle = color; ctx.fillRect(-15, -15, 30, 30);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; ctx.fillRect(-5, -15, 10, 30); ctx.fillRect(-15, -5, 30, 10);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; ctx.lineWidth = 2; ctx.strokeRect(-15, -15, 30, 30);
-    ctx.fillStyle = "white"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    let icon = ""; if (pup.type === PowerupType.SPEED) icon = "⚡"; else if (pup.type === PowerupType.HEALING) icon = "+"; else if (pup.type === PowerupType.LIFE) icon = "♥"; else if (pup.type === PowerupType.BLAST) icon = "💥";
-    if (icon) { ctx.shadowBlur = 0; ctx.fillText(icon, 0, 1); }
-    ctx.restore();
+      ctx.save(); 
+      ctx.translate(pup.x, pup.y);
+      
+      // Draw Gift Box
+      ctx.fillStyle = POWERUP_COLORS[pup.type];
+      ctx.shadowColor = POWERUP_COLORS[pup.type];
+      ctx.shadowBlur = 15;
+      ctx.fillRect(0, 0, pup.width, pup.height);
+      
+      // Ribbons (White cross)
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      // Vertical ribbon
+      ctx.fillRect(pup.width / 2 - 5, 0, 10, pup.height);
+      // Horizontal ribbon
+      ctx.fillRect(0, pup.height / 2 - 5, pup.width, 10);
+      
+      // Bow
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(pup.width / 2 - 8, -4, 8, 0, Math.PI * 2);
+      ctx.arc(pup.width / 2 + 8, -4, 8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Outline
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, pup.width, pup.height);
+      
+      ctx.restore();
   };
 
   const drawLetter = (ctx: CanvasRenderingContext2D, letter: Letter) => {
-    ctx.save(); ctx.translate(letter.x + letter.width / 2, letter.y + letter.height / 2); ctx.rotate(Math.sin(letter.floatOffset) * 0.2);
-    ctx.fillStyle = letter.isGolden ? "#fbbf24" : "#fef3c7"; 
-    ctx.shadowColor = letter.isGolden ? "#d97706" : "rgba(251, 191, 36, 0.6)"; ctx.shadowBlur = letter.isGolden ? 20 : 10;
-    ctx.fillRect(-15, -10, 30, 20);
-    ctx.strokeStyle = "#d97706"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-15, -10); ctx.lineTo(0, 2); ctx.lineTo(15, -10); ctx.stroke();
-    ctx.fillStyle = "#dc2626"; ctx.beginPath(); ctx.arc(0, 2, 4, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  };
-
-  const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
-      ctx.save(); ctx.translate(lm.x, lm.y);
+      ctx.save(); ctx.translate(letter.x, letter.y);
+      ctx.rotate(Math.sin(letter.floatOffset) * 0.2);
+      // Envelope body
+      ctx.fillStyle = letter.isGolden ? "#fef3c7" : "#f1f5f9";
+      ctx.shadowColor = letter.isGolden ? "#fbbf24" : "rgba(0,0,0,0.3)";
+      ctx.shadowBlur = letter.isGolden ? 15 : 5;
       
-      if (lm.type === 'HOSPITAL') {
-          ctx.fillStyle = "#475569"; ctx.fillRect(0, 0, lm.width, lm.height);
-          ctx.fillStyle = "#e0f2fe"; ctx.shadowBlur = 10; ctx.shadowColor = "white";
-          for(let i=20; i<lm.width-20; i+=30) { for(let j=50; j<lm.height-20; j+=40) { ctx.fillRect(i, j, 15, 25); } }
-          ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(lm.width/2, 50, 40, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle = "#ef4444"; ctx.fillRect(lm.width/2 - 10, 20, 20, 60); ctx.fillRect(lm.width/2 - 30, 40, 60, 20);
-      } else if (lm.type === 'ORPHANAGE') {
-          ctx.fillStyle = "#7c2d12"; ctx.fillRect(0, 50, lm.width, lm.height-50);
-          ctx.fillStyle = "#1e293b"; ctx.beginPath(); ctx.moveTo(-20, 50); ctx.lineTo(lm.width/2, -20); ctx.lineTo(lm.width+20, 50); ctx.fill();
-          ctx.fillStyle = "#fbbf24"; ctx.shadowBlur = 10; ctx.shadowColor = "#d97706";
-          for(let i=20; i<lm.width-20; i+=50) { ctx.fillRect(i, 100, 30, 40); }
-      } else if (lm.type === 'CLOCK_TOWER') {
-          ctx.fillStyle = "#3f3f46"; ctx.fillRect(20, 0, lm.width-40, lm.height);
-          // Clock Face
-          ctx.fillStyle = "#fef3c7"; ctx.shadowBlur=20; ctx.shadowColor="orange"; ctx.beginPath(); ctx.arc(lm.width/2, 80, 50, 0, Math.PI*2); ctx.fill();
-          ctx.strokeStyle = "#451a03"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(lm.width/2, 80); ctx.lineTo(lm.width/2, 40); ctx.stroke(); // 12:00
-          ctx.beginPath(); ctx.moveTo(lm.width/2, 80); ctx.lineTo(lm.width/2 - 20, 70); ctx.stroke(); // 11:55 ish
-      } else if (lm.type === 'LIGHTHOUSE') {
-          ctx.fillStyle = "#e2e8f0"; ctx.beginPath(); ctx.moveTo(20, lm.height); ctx.lineTo(lm.width-20, lm.height); ctx.lineTo(lm.width/2 + 10, 50); ctx.lineTo(lm.width/2 - 10, 50); ctx.fill();
-          ctx.fillStyle = "#dc2626"; ctx.fillRect(lm.width/2 - 15, 150, 30, 20); ctx.fillRect(lm.width/2 - 20, 250, 40, 20);
-          ctx.fillStyle = "yellow"; ctx.shadowBlur = 50; ctx.shadowColor = "white"; ctx.beginPath(); ctx.arc(lm.width/2, 50, 20, 0, Math.PI*2); ctx.fill();
-      } else if (lm.type === 'FINAL_HOUSE') {
-          // A humble, small house on a hill
-          ctx.fillStyle = "#713f12"; ctx.fillRect(50, 100, 100, 100);
-          ctx.fillStyle = "#1e293b"; ctx.beginPath(); ctx.moveTo(30, 100); ctx.lineTo(100, 40); ctx.lineTo(170, 100); ctx.fill();
-          // Glowing Window
-          ctx.fillStyle = "#fde047"; ctx.shadowBlur=50; ctx.shadowColor="gold"; ctx.fillRect(80, 140, 40, 40);
-          // Chimney
-          ctx.fillStyle = "#57534e"; ctx.fillRect(130, 50, 20, 40);
+      ctx.fillRect(0, 0, letter.width, letter.height);
+      // Envelope flap
+      ctx.fillStyle = letter.isGolden ? "#fde68a" : "#e2e8f0";
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(letter.width/2, letter.height/1.5); ctx.lineTo(letter.width, 0); ctx.fill();
+      
+      if (letter.isGolden) {
+          ctx.strokeStyle = "#d97706"; ctx.lineWidth = 1; ctx.strokeRect(0,0, letter.width, letter.height);
       }
-
+      
+      // Wax seal
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath(); ctx.arc(letter.width/2, letter.height/2.5, 4, 0, Math.PI*2); ctx.fill();
+      
       ctx.restore();
   };
 
