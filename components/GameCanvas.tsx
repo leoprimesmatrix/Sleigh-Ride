@@ -564,7 +564,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           LANDMARKS.forEach(lm => {
               if (progressRatio >= lm.progress && !triggeredLandmarksRef.current.has(lm.type)) {
                   triggeredLandmarksRef.current.add(lm.type);
-                  const yPos = lm.type === 'CLOCK_TOWER' ? CANVAS_HEIGHT - 400 : (lm.type === 'FINAL_HOUSE' ? CANVAS_HEIGHT - 200 : CANVAS_HEIGHT - 300);
+                  // Corrected Y position for both Clock Tower and Final House to ensure they sit on the ground
+                  const yPos = (lm.type === 'CLOCK_TOWER' || lm.type === 'FINAL_HOUSE') ? CANVAS_HEIGHT - 400 : CANVAS_HEIGHT - 300;
                   landmarksRef.current.push({
                       id: Date.now(),
                       x: CANVAS_WIDTH + 200,
@@ -1230,6 +1231,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
       ctx.save(); ctx.translate(lm.x, lm.y);
       if (lm.type === 'CLOCK_TOWER') {
+          // Roof
+          ctx.fillStyle = "#0f172a";
+          ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(lm.width/2, -80); ctx.lineTo(lm.width + 10, 0); ctx.fill();
+
           ctx.fillStyle = "#1e293b";
           ctx.fillRect(0, 0, lm.width, lm.height);
           // Clock face
@@ -1299,6 +1304,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       ctx.lineWidth = 2;
       ctx.strokeRect(0, 0, pup.width, pup.height);
       
+      // Add Emoji
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "20px Arial";
+      let icon = "⚡";
+      switch(pup.type) {
+          case PowerupType.SPEED: icon = "⚡"; break;
+          case PowerupType.SNOWBALLS: icon = "❄️"; break;
+          case PowerupType.BLAST: icon = "💥"; break;
+          case PowerupType.HEALING: icon = "➕"; break;
+          case PowerupType.LIFE: icon = "❤️"; break;
+      }
+      ctx.fillText(icon, pup.width/2, pup.height/2);
+
       ctx.restore();
   };
 
