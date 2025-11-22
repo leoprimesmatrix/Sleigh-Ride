@@ -485,7 +485,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
 
       // Level/Act Logic
       let levelIndex = 0;
-      const effectiveProgress = progressRatio > 1 ? (progressRatio % 1) * 100 : progressRatio * 100;
+      // FIX: Prevent level wrapping in Story Mode to ensure we stay in Act V (Level 4)
+      // In Story Mode, effectiveProgress should cap at 100 (or max progress) to remain in the final biome.
+      // In Endless, it wraps around via modulo.
+      let effectiveProgress = progressRatio * 100;
+      if (gameMode === GameMode.ENDLESS && progressRatio > 1) {
+          effectiveProgress = (progressRatio % 1) * 100;
+      } else if (gameMode === GameMode.STORY) {
+          effectiveProgress = Math.min(100, effectiveProgress);
+      }
+
       for (let i = LEVELS.length - 1; i >= 0; i--) {
         if (effectiveProgress >= LEVEL_THRESHOLDS[i]) {
           levelIndex = i;
@@ -631,7 +640,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         // Biome Filtering
         let availableTypes: Obstacle['type'][] = types;
         if (levelIndex === 2) availableTypes = ['BIRD', 'CLOUD']; // Ocean: No ground obstacles
-        else if (levelIndex === 4) availableTypes = []; // Sunrise: Nothing
+        else if (levelIndex === 4) availableTypes = []; // Sunrise: Nothing (Handled by spawnRateMultiplier=0)
         
         if (availableTypes.length > 0) {
             const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
@@ -649,24 +658,30 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
       
       if (!isEndingSequenceRef.current && Math.random() < 0.004 * timeScale) {
-        const pTypes = Object.values(PowerupType);
-        const pType = pTypes[Math.floor(Math.random() * pTypes.length)];
-        powerupsRef.current.push({
-          id: Date.now() + Math.random(),
-          x: CANVAS_WIDTH + 100,
-          y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
-          width: 40, height: 40, type: pType, floatOffset: Math.random() * Math.PI * 2, markedForDeletion: false
-        });
+        // Prevent Powerups in Act V Story Mode
+        if (gameMode !== GameMode.STORY || levelIndex !== 4) {
+            const pTypes = Object.values(PowerupType);
+            const pType = pTypes[Math.floor(Math.random() * pTypes.length)];
+            powerupsRef.current.push({
+              id: Date.now() + Math.random(),
+              x: CANVAS_WIDTH + 100,
+              y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
+              width: 40, height: 40, type: pType, floatOffset: Math.random() * Math.PI * 2, markedForDeletion: false
+            });
+        }
       }
       
       if (!isEndingSequenceRef.current && Math.random() < 0.002 * timeScale) {
           const msg = WISHES[Math.floor(Math.random() * WISHES.length)];
+          // Force golden letters in Act V Story Mode
+          const isGolden = (gameMode === GameMode.STORY && levelIndex === 4);
           lettersRef.current.push({
               id: Date.now() + Math.random(),
               x: CANVAS_WIDTH + 100,
               y: Math.random() * (CANVAS_HEIGHT - 250) + 50,
               width: 30, height: 20, floatOffset: Math.random() * Math.PI, markedForDeletion: false,
-              message: msg
+              message: msg,
+              isGolden: isGolden
           });
       }
 
@@ -675,12 +690,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         obs.x -= currentSpeed * level.obstacleSpeedMultiplier * timeScale;
         if (obs.x + obs.width < -100) obs.markedForDeletion = true;
         if (!cinematicMode && !player.isInvincible && checkCollision(player, obs)) {
-          player.lives--;
-          soundManager.playCrash();
-          player.invincibleTimer = 2.0;
-          shakeRef.current = 20;
-          createParticles(player.x, player.y, ParticleType.DEBRIS, 15, '#ef4444');
-          saturationRef.current = Math.max(0, saturationRef.current - 0.2); // Taking damage drains color
+          // Act V God Mode Check (Act V = Level 4)
+          if (gameMode === GameMode.STORY && levelIndex === 4) {
+              // Invulnerable in the final biome
+          } else {
+              player.lives--;
+              soundManager.playCrash();
+              player.invincibleTimer = 2.0;
+              shakeRef.current = 20;
+              createParticles(player.x, player.y, ParticleType.DEBRIS, 15, '#ef4444');
+              saturationRef.current = Math.max(0, saturationRef.current - 0.2); // Taking damage drains color
+          }
         }
       });
       
