@@ -671,7 +671,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         }
       }
       
-      if (!isEndingSequenceRef.current && Math.random() < 0.002 * timeScale) {
+      // Increased spawn rate for Act V
+      const letterSpawnChance = (gameMode === GameMode.STORY && levelIndex === 4) ? 0.01 : 0.002;
+      
+      if (!isEndingSequenceRef.current && Math.random() < letterSpawnChance * timeScale) {
           const msg = WISHES[Math.floor(Math.random() * WISHES.length)];
           // Force golden letters in Act V Story Mode
           const isGolden = (gameMode === GameMode.STORY && levelIndex === 4);

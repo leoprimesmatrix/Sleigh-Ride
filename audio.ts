@@ -270,9 +270,8 @@ export class SoundManager {
     
     console.log(`Triggering ending music with fade.`);
     
-    // If already playing, do nothing
-    if (!this.endingAudio.paused && this.endingAudio.currentTime > 0) return;
-
+    // Force reset to ensure it plays every time, even on restarts
+    this.endingAudio.pause();
     this.endingAudio.currentTime = startOffsetSeconds;
     this.endingAudio.volume = 0;
     
