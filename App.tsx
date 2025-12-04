@@ -17,15 +17,12 @@ const App: React.FC = () => {
   const [showPatchNotes, setShowPatchNotes] = useState(false);
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   
-  // Progression State
   const [isStoryComplete, setIsStoryComplete] = useState(false);
   const [hasSeenIntro, setHasSeenIntro] = useState(false);
 
-  // Intro State
   const [introStage, setIntroStage] = useState(0);
 
   useEffect(() => {
-    // Load Save Data
     const savedVersion = localStorage.getItem('sleigh_ride_version');
     if (savedVersion !== CURRENT_VERSION) {
       setShowUpdateNotification(true);
@@ -38,25 +35,17 @@ const App: React.FC = () => {
     setHasSeenIntro(introSeen);
   }, []);
   
-  // Manage Intro Stages
   useEffect(() => {
     if (gameState === GameState.INTRO) {
-        // If user has already seen the intro, we skip the text drama and just do a quick transition
         if (hasSeenIntro) {
             const t = setTimeout(() => setGameState(GameState.PLAYING), 2000);
             return () => clearTimeout(t);
         }
 
-        // First Time Playthrough - Full Drama
-        // Stage 0: Welcome
         const t1 = setTimeout(() => setIntroStage(1), 4000);
-        // Stage 1: Envelope Story
         const t2 = setTimeout(() => setIntroStage(2), 8000);
-        // Stage 2: Collect them all
         const t3 = setTimeout(() => setIntroStage(3), 11000);
-        // Stage 3: CANCELLED (Red)
         const t4 = setTimeout(() => setIntroStage(4), 14000);
-        // Stage 4: Last Hope
         const t5 = setTimeout(() => {
             localStorage.setItem('sleigh_ride_intro_seen', 'true');
             setHasSeenIntro(true);
@@ -80,7 +69,7 @@ const App: React.FC = () => {
     
     setTimeout(() => {
         setIsLoading(false);
-        setGameState(GameState.INTRO); // Start Intro (Visual swoop)
+        setGameState(GameState.INTRO); 
     }, 1500);
   };
 
@@ -114,7 +103,6 @@ const App: React.FC = () => {
   return (
     <div className="h-screen overflow-y-auto bg-slate-950 flex flex-col items-center justify-center p-4 select-none font-sans">
       
-      {/* Main Menu */}
       {gameState === GameState.MENU && !isLoading && (
         <div className="text-center space-y-2 md:space-y-4 animate-fade-in w-full max-w-2xl my-auto py-2">
           <div className="w-full flex justify-center px-4">
@@ -132,7 +120,6 @@ const App: React.FC = () => {
             <h2 className="text-xl md:text-2xl font-bold mb-4 text-white">Select Mission</h2>
             
             <div className="flex flex-col gap-4 md:flex-row justify-center items-stretch mb-8">
-                {/* Story Mode Button */}
                 <button 
                     onClick={() => handleStartClick(GameMode.STORY)}
                     className="flex-1 py-6 px-4 bg-gradient-to-b from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white rounded-xl shadow-lg transform transition-all hover:scale-105 flex flex-col items-center justify-center gap-2 group border border-green-400/30"
@@ -142,7 +129,6 @@ const App: React.FC = () => {
                     <span className="text-xs text-green-200 uppercase tracking-widest">Save Christmas</span>
                 </button>
 
-                {/* Endless Mode Button */}
                 <button 
                     onClick={() => handleStartClick(GameMode.ENDLESS)}
                     disabled={!isStoryComplete}
@@ -187,11 +173,9 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* New Update Notification Modal */}
       {showUpdateNotification && gameState === GameState.MENU && !isLoading && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 animate-fade-in">
            <div className="bg-gradient-to-b from-slate-800 to-slate-900 border-2 border-yellow-500/50 rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center relative overflow-hidden">
-              {/* Shine Effect */}
               <div className="absolute -top-10 -left-10 w-20 h-20 bg-white/10 blur-2xl rounded-full pointer-events-none"></div>
               
               <div className="mx-auto w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-4 text-yellow-400 animate-pulse">
@@ -221,7 +205,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Patch Notes Modal */}
       {showPatchNotes && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-fade-in">
             <div className="bg-slate-900 border border-slate-600 rounded-xl max-w-md w-full p-6 relative shadow-2xl">
@@ -250,7 +233,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Loading Screen */}
       {isLoading && (
         <div className="flex flex-col items-center justify-center space-y-6 animate-fade-in">
            <div className="relative">
@@ -263,7 +245,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Help Screen */}
       {gameState === GameState.HELP && (
         <div className="w-full max-w-2xl bg-slate-900/90 p-8 rounded-2xl border border-slate-600 shadow-2xl backdrop-blur-md animate-slide-up">
           <div className="flex items-center justify-between mb-6">
@@ -283,9 +264,7 @@ const App: React.FC = () => {
                      boxShadow: `0 0 15px ${POWERUP_COLORS[type]}40`
                    }}
                  >
-                    {/* Vertical Ribbon */}
                     <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-3 bg-white/90 shadow-sm"></div>
-                    {/* Horizontal Ribbon */}
                     <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-3 bg-white/90 shadow-sm"></div>
                  </div>
                  <div>
@@ -311,7 +290,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Game Container */}
       {(gameState === GameState.PLAYING || gameState === GameState.GAME_OVER || gameState === GameState.VICTORY || gameState === GameState.INTRO) && (
         <div className="relative w-full max-w-[1200px] aspect-[2/1] shadow-2xl rounded-xl overflow-hidden">
           <GameCanvas 
@@ -321,7 +299,6 @@ const App: React.FC = () => {
             onWin={handleWin}
           />
           
-          {/* Intro Overlay (First Time Only) */}
           {gameState === GameState.INTRO && !hasSeenIntro && (
               <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-8 animate-fade-in text-center">
                   <div className="max-w-3xl space-y-6">
@@ -374,7 +351,6 @@ const App: React.FC = () => {
               </div>
           )}
 
-          {/* Game Over Overlay */}
           {gameState === GameState.GAME_OVER && (
             <div className="absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center animate-fade-in">
               <h2 className="text-7xl font-christmas text-red-600 mb-2 drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]">Mission Failed</h2>
@@ -396,7 +372,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Victory Cutscene */}
           {gameState === GameState.VICTORY && (
             <VictorySequence onRestart={restartGame} />
           )}

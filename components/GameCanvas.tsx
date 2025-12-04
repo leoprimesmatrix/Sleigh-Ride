@@ -46,12 +46,10 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin, gameMode }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Debug State
   const [debugMenuOpen, setDebugMenuOpen] = useState(false);
   const [cinematicMode, setCinematicMode] = useState(false);
   const [promoMode, setPromoMode] = useState(false);
 
-  // Game Logic State
   const playerRef = useRef<Player>({
     id: 0, x: 150, y: 300, width: 50, height: 30, markedForDeletion: false,
     vy: 0, lives: 3, snowballs: 0, isInvincible: false, invincibleTimer: 0,
@@ -65,7 +63,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const projectilesRef = useRef<Projectile[]>([]);
   const particlesRef = useRef<Particle[]>([]);
   
-  // Visual Extras Refs
   const starsRef = useRef<{x:number, y:number, size:number, phase:number}[]>([]);
   const bgCloudsRef = useRef<{x:number, y:number, speed:number, scale:number, opacity: number}[]>([]);
   const bgTreesRef = useRef<boolean[][]>([[], [], []]); 
@@ -74,17 +71,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const flashTimerRef = useRef(0); 
   const pausedTimeRef = useRef(0); 
 
-  // Narrative & Mechanic Refs
-  const saturationRef = useRef(0.0); // 0 = B&W, 1 = Color
-  const flickerTimerRef = useRef(0); // For Act IV
+  const saturationRef = useRef(0.0);
+  const flickerTimerRef = useRef(0);
   const isLightsOutRef = useRef(false);
   const isEndingSequenceRef = useRef(false);
   const joyRideModeRef = useRef(false);
   const joyRideTimerRef = useRef(0);
   const masterGiftDroppedRef = useRef(false);
-  const cutsceneExplosionTriggeredRef = useRef(false); // SAFETY REF
+  const cutsceneExplosionTriggeredRef = useRef(false);
 
-  // Queues for HUD
   const collectedPowerupsRef = useRef<{ id: number; type: PowerupType }[]>([]);
   const activeDialogueRef = useRef<DialogueLine | null>(null);
   const activeWishRef = useRef<string | null>(null);
@@ -98,18 +93,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const lastFrameTimeRef = useRef(0);
   const shakeRef = useRef(0);
   const triggeredStoryMomentsRef = useRef<Set<string>>(new Set());
-  const lastLevelIndexRef = useRef(-1); // Track level changes for audio triggers
+  const lastLevelIndexRef = useRef(-1);
   
-  // Parallax Layers
   const bgLayersRef = useRef<BackgroundLayer[]>([
     { points: [], color: '', speedModifier: 0.2, offset: 0 }, 
     { points: [], color: '', speedModifier: 0.5, offset: 0 }, 
     { points: [], color: '', speedModifier: 0.8, offset: 0 }, 
   ]);
 
-  // Initial Background Generation
   useEffect(() => {
-    citySkylineRef.current = []; // Clear specifically on mount to prevent double rendering issues
+    citySkylineRef.current = [];
     distantCitySkylineRef.current = [];
 
     const generateTerrain = (amplitude: number, roughness: number) => {
@@ -151,7 +144,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         });
     }
     
-    // Generate Foreground City Skyline for Joy Ride
     let cx = 0;
     while(cx < CANVAS_WIDTH + 200) {
         const w = Math.random() * 40 + 40;
@@ -171,15 +163,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         cx += w + 5;
     }
 
-    // Generate Distant City Skyline (Horizon)
     let dcx = 0;
     while(dcx < CANVAS_WIDTH + 200) {
-        const w = Math.random() * 60 + 60; // Wider buildings
-        const h = Math.random() * 80 + 40; // Shorter (distant)
+        const w = Math.random() * 60 + 60;
+        const h = Math.random() * 80 + 40;
         const windows = [];
         for(let wx=5; wx<w-5; wx+=8) {
             for(let wy=10; wy<h-10; wy+=12) {
-                if(Math.random() > 0.7) windows.push({x: wx, y: wy}); // Fewer lights
+                if(Math.random() > 0.7) windows.push({x: wx, y: wy});
             }
         }
         distantCitySkylineRef.current.push({
@@ -188,12 +179,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             height: h,
             windows
         });
-        dcx += w - 2; // More overlap
+        dcx += w - 2;
     }
 
   }, []);
   
-  // React State for HUD
   const [hudState, setHudState] = useState({
     lives: 3,
     snowballs: 0,
@@ -208,7 +198,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     activeWish: null as string | null
   });
 
-  // Input Handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Backquote') {
@@ -287,7 +276,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }, 500);
   };
 
-  // Main Game Loop
   useEffect(() => {
     if (gameState !== GameState.PLAYING && gameState !== GameState.INTRO) {
       soundManager.setSleighVolume(0);
@@ -335,12 +323,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       masterGiftDroppedRef.current = false;
       cutsceneExplosionTriggeredRef.current = false;
       
-      // Reset Music
       lastLevelIndexRef.current = -1;
       soundManager.stopBgm();
     };
 
-    // Robust Reset Logic
     if (gameState === GameState.INTRO || (gameState === GameState.PLAYING && playerRef.current.lives <= 0)) {
         resetGame();
     }
@@ -365,11 +351,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
          return;
       }
 
-      // Victory / Game Over Condition
       if (playerRef.current.lives > 0) {
-          // Game Ends only when Joy Ride finishes
           if (gameMode === GameMode.STORY && joyRideTimerRef.current < 0 && joyRideModeRef.current) {
-               // Final Fade out handled in update, just waiting for signal
           } else if (gameMode === GameMode.STORY && timeRef.current <= 0 && !isEndingSequenceRef.current) {
                setGameState(GameState.GAME_OVER);
           } else {
@@ -385,13 +368,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       const timeScale = dt * 60;
 
       if (gameState === GameState.INTRO) {
-          // ... Intro Logic ...
           timeRef.current = TOTAL_GAME_TIME_SECONDS; 
           const hoverSpeed = BASE_SPEED * 0.5;
           soundManager.setSleighVolume(hoverSpeed);
           player.y = 300 + Math.sin(timestamp / 800) * 20;
           player.angle = Math.sin(timestamp / 800) * 0.1;
-          // Simple scroll
           bgCloudsRef.current.forEach(cloud => {
             cloud.x -= (cloud.speed + hoverSpeed * 0.1) * timeScale * 0.1;
             if (cloud.x < -150) { cloud.x = CANVAS_WIDTH + 150; cloud.y = Math.random() * (CANVAS_HEIGHT / 2.5); }
@@ -399,7 +380,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           return;
       }
 
-      // Normal Update
       if (gameMode === GameMode.STORY && !joyRideModeRef.current) {
          timeRef.current -= dt;
       } else {
@@ -408,65 +388,51 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       
       if (flashTimerRef.current > 0) flashTimerRef.current -= dt;
       
-      // Speed Calculation
       const speedMultiplier = player.speedTimer > 0 ? 1.5 : 1.0;
       let progressRatio = distanceRef.current / VICTORY_DISTANCE;
       
-      // Endless infinite scaling
-      if (gameMode === GameMode.STORY) progressRatio = Math.min(1.02, progressRatio); // Cap slightly above 1 for cutscene
+      if (gameMode === GameMode.STORY) progressRatio = Math.min(1.02, progressRatio);
 
       const currentSpeedFrame = (BASE_SPEED + (Math.min(progressRatio, 3.0) * 6)); 
       let currentSpeed = isEndingSequenceRef.current ? currentSpeedFrame * 0.5 : currentSpeedFrame * speedMultiplier; 
       
-      // --- Act V: Dawn & Ending Sequence ---
-      
-      // 1. Trigger Music Fade-In at Dawn (90%)
       if (gameMode === GameMode.STORY && progressRatio >= 0.90 && !endingMusicTriggeredRef.current) {
           endingMusicTriggeredRef.current = true;
-          soundManager.playEndingMusic(0, 10); // Start fading in
+          soundManager.playEndingMusic(0, 10);
       }
 
-      // 2. Trigger Ending Cutscene Sequence (99%)
       if (gameMode === GameMode.STORY && progressRatio >= 0.99 && !isEndingSequenceRef.current) {
           isEndingSequenceRef.current = true;
           player.isInvincible = true;
       }
 
       if (isEndingSequenceRef.current) {
-          // Silence the sleigh during the entire ending sequence to let ending.mp3 take center stage
           soundManager.setSleighVolume(0);
 
           if (joyRideModeRef.current) {
-              // --- PHASE 2: THE JOY RIDE (Post-Gift) ---
-              currentSpeed = BASE_SPEED * 3; // Go fast!
+              currentSpeed = BASE_SPEED * 3;
               joyRideTimerRef.current -= dt;
               
-              // Auto-Pilot loop de loops
               player.y = 250 + Math.sin(timestamp / 400) * 80;
               player.angle = Math.sin(timestamp / 400) * 0.2;
               
-              // End Game
               if (joyRideTimerRef.current <= 0) {
                    setGameState(GameState.VICTORY);
                    onWin();
               }
 
           } else {
-              // --- PHASE 1: THE FINAL DELIVERY (Pre-Gift) ---
               player.vy = 0;
-              player.y += (200 - player.y) * 0.05 * timeScale; // Move to center
+              player.y += (200 - player.y) * 0.05 * timeScale;
               
-              // Drop Master Gift logic
               if (!masterGiftDroppedRef.current && landmarksRef.current.some(l => l.type === 'FINAL_HOUSE' && l.x < CANVAS_WIDTH/2)) {
                   masterGiftDroppedRef.current = true;
-                  // Spawn master gift visual
                   createParticles(player.x, player.y, ParticleType.GLOW, 50, 'gold');
-                  flashTimerRef.current = 2.0; // Long white flash
+                  flashTimerRef.current = 2.0;
                   
-                  // Delayed transition to Joy Ride to allow flash to cover it
                   setTimeout(() => {
                        joyRideModeRef.current = true;
-                       joyRideTimerRef.current = 12.0; // 12 Seconds of celebration
+                       joyRideTimerRef.current = 12.0;
                   }, 500);
               }
           }
@@ -483,11 +449,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
          scoreRef.current += currentSpeed * 0.1 * timeScale;
       }
 
-      // Level/Act Logic
       let levelIndex = 0;
-      // FIX: Prevent level wrapping in Story Mode to ensure we stay in Act V (Level 4)
-      // In Story Mode, effectiveProgress should cap at 100 (or max progress) to remain in the final biome.
-      // In Endless, it wraps around via modulo.
       let effectiveProgress = progressRatio * 100;
       if (gameMode === GameMode.ENDLESS && progressRatio > 1) {
           effectiveProgress = (progressRatio % 1) * 100;
@@ -502,7 +464,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         }
       }
       
-      // Audio Transition Logic
       if (levelIndex !== lastLevelIndexRef.current) {
           soundManager.playLevelBgm(levelIndex);
           lastLevelIndexRef.current = levelIndex;
@@ -510,19 +471,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       
       const level = LEVELS[levelIndex];
 
-      // --- Act Specific Mechanics ---
-
-      // Act II: Gray World Re-Ignition
-      if (levelIndex === 1) { // Gray World
-          saturationRef.current = Math.max(0, saturationRef.current - 0.001 * timeScale); // Decay color
+      if (levelIndex === 1) {
+          saturationRef.current = Math.max(0, saturationRef.current - 0.001 * timeScale);
       } else if (levelIndex === 4 || joyRideModeRef.current) {
-          saturationRef.current = 1.0; // Full color in Act V / Joy Ride
+          saturationRef.current = 1.0;
       } else {
-          saturationRef.current = Math.min(1, saturationRef.current + 0.005 * timeScale); // Recover otherwise
+          saturationRef.current = Math.min(1, saturationRef.current + 0.005 * timeScale);
       }
 
-      // Act IV: The Flicker
-      if (levelIndex === 3) { // Blizzard
+      if (levelIndex === 3) {
           flickerTimerRef.current -= dt;
           if (flickerTimerRef.current <= 0) {
               isLightsOutRef.current = !isLightsOutRef.current;
@@ -532,9 +489,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           isLightsOutRef.current = false;
       }
 
-      // --- Narrative Logic (Story Mode Only) ---
       if (gameMode === GameMode.STORY) {
-          // Dialogue Moments
           STORY_MOMENTS.forEach(moment => {
             if (progressRatio >= moment.progress && !triggeredStoryMomentsRef.current.has(moment.dialogue.id)) {
               triggeredStoryMomentsRef.current.add(moment.dialogue.id);
@@ -545,11 +500,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             }
           });
 
-          // Spawn Landmarks
           LANDMARKS.forEach(lm => {
               if (progressRatio >= lm.progress && !triggeredLandmarksRef.current.has(lm.type)) {
                   triggeredLandmarksRef.current.add(lm.type);
-                  // Corrected Y position for both Clock Tower and Final House to ensure they sit on the ground
                   const yPos = (lm.type === 'CLOCK_TOWER' || lm.type === 'FINAL_HOUSE') ? CANVAS_HEIGHT - 400 : CANVAS_HEIGHT - 300;
                   landmarksRef.current.push({
                       id: Date.now(),
@@ -562,7 +515,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                       name: lm.name
                   });
                   
-                  // Act II specific: Clock Tower comes with Golden Letter
                   if (lm.type === 'CLOCK_TOWER') {
                       lettersRef.current.push({
                           id: Date.now() + 1,
@@ -579,7 +531,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               }
           });
 
-          // Spawn Specific Narrative Letters
           NARRATIVE_LETTERS.forEach(nl => {
               const key = `letter_${nl.progress}`;
               if (progressRatio >= nl.progress && !triggeredLettersRef.current.has(key)) {
@@ -595,7 +546,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           });
       }
 
-      // --- Physics & Updates ---
       if (!isEndingSequenceRef.current) {
           player.vy += GRAVITY * timeScale;
           player.y += player.vy * timeScale;
@@ -614,7 +564,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
       player.isInvincible = player.invincibleTimer > 0;
 
-      // Backgrounds
       bgCloudsRef.current.forEach(cloud => {
           cloud.x -= (cloud.speed + (currentSpeed * 0.1)) * timeScale * 0.1;
           if (cloud.x < -150) { cloud.x = CANVAS_WIDTH + 150; cloud.y = Math.random() * (CANVAS_HEIGHT / 2.5); }
@@ -633,14 +582,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           }
       });
 
-      // Spawning
       if (!isEndingSequenceRef.current && Math.random() < 0.015 * level.spawnRateMultiplier * timeScale) {
         const types: Obstacle['type'][] = ['TREE', 'BIRD', 'SNOWMAN', 'BUILDING', 'CLOUD'];
         
-        // Biome Filtering
         let availableTypes: Obstacle['type'][] = types;
-        if (levelIndex === 2) availableTypes = ['BIRD', 'CLOUD']; // Ocean: No ground obstacles
-        else if (levelIndex === 4) availableTypes = []; // Sunrise: Nothing (Handled by spawnRateMultiplier=0)
+        if (levelIndex === 2) availableTypes = ['BIRD', 'CLOUD'];
+        else if (levelIndex === 4) availableTypes = [];
         
         if (availableTypes.length > 0) {
             const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
@@ -658,7 +605,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
       
       if (!isEndingSequenceRef.current && Math.random() < 0.004 * timeScale) {
-        // Prevent Powerups in Act V Story Mode
         if (gameMode !== GameMode.STORY || levelIndex !== 4) {
             const pTypes = Object.values(PowerupType);
             const pType = pTypes[Math.floor(Math.random() * pTypes.length)];
@@ -671,12 +617,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         }
       }
       
-      // Increased spawn rate for Act V
       const letterSpawnChance = (gameMode === GameMode.STORY && levelIndex === 4) ? 0.01 : 0.002;
       
       if (!isEndingSequenceRef.current && Math.random() < letterSpawnChance * timeScale) {
           const msg = WISHES[Math.floor(Math.random() * WISHES.length)];
-          // Force golden letters in Act V Story Mode
           const isGolden = (gameMode === GameMode.STORY && levelIndex === 4);
           lettersRef.current.push({
               id: Date.now() + Math.random(),
@@ -688,21 +632,18 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           });
       }
 
-      // Updates
       obstaclesRef.current.forEach(obs => {
         obs.x -= currentSpeed * level.obstacleSpeedMultiplier * timeScale;
         if (obs.x + obs.width < -100) obs.markedForDeletion = true;
         if (!cinematicMode && !player.isInvincible && checkCollision(player, obs)) {
-          // Act V God Mode Check (Act V = Level 4)
           if (gameMode === GameMode.STORY && levelIndex === 4) {
-              // Invulnerable in the final biome
           } else {
               player.lives--;
               soundManager.playCrash();
               player.invincibleTimer = 2.0;
               shakeRef.current = 20;
               createParticles(player.x, player.y, ParticleType.DEBRIS, 15, '#ef4444');
-              saturationRef.current = Math.max(0, saturationRef.current - 0.2); // Taking damage drains color
+              saturationRef.current = Math.max(0, saturationRef.current - 0.2);
           }
         }
       });
@@ -712,11 +653,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           if (lm.x + lm.width < -200) lm.markedForDeletion = true;
       });
       
-      // Update City Skylines (Joy Ride only)
       if (joyRideModeRef.current) {
-          // Distant City
           distantCitySkylineRef.current.forEach(city => {
-             city.x -= currentSpeed * 0.15 * timeScale; // Parallax speed
+             city.x -= currentSpeed * 0.15 * timeScale;
              if (city.x + city.width < -100) {
                  city.x = CANVAS_WIDTH + 100;
                  city.height = Math.random() * 80 + 40;
@@ -731,14 +670,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
              }
           });
 
-          // Foreground City
           citySkylineRef.current.forEach(city => {
              city.x -= currentSpeed * 0.3 * timeScale;
              if (city.x + city.width < -100) {
                  city.x = CANVAS_WIDTH + 100;
                  city.height = Math.random() * 150 + 100;
                  city.width = Math.random() * 40 + 40;
-                 // Regen windows
                  const windows = [];
                  for(let wx=10; wx<city.width-10; wx+=15) {
                     for(let wy=20; wy<city.height-20; wy+=25) {
@@ -761,7 +698,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           soundManager.playPowerup(pup.type);
           createParticles(pup.x, pup.y, ParticleType.SPARKLE, 20, POWERUP_COLORS[pup.type]);
           collectedPowerupsRef.current.push({ id: Date.now() + Math.random(), type: pup.type });
-          saturationRef.current = Math.min(1.0, saturationRef.current + 0.1); // Powerups restore color
+          saturationRef.current = Math.min(1.0, saturationRef.current + 0.1);
         }
       });
 
@@ -775,10 +712,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               soundManager.playCollectWish();
               const color = letter.isGolden ? '#fbbf24' : '#fcd34d';
               createParticles(letter.x, letter.y, ParticleType.SPARKLE, 15, color); 
-              saturationRef.current = Math.min(1.0, saturationRef.current + 0.2); // Wishes restore color significantly
+              saturationRef.current = Math.min(1.0, saturationRef.current + 0.2);
               if (letter.isGolden) {
                    shakeRef.current = 10;
-                   // Shockwave effect (Re-ignition)
                    particlesRef.current.push({
                        id: Math.random(), type: ParticleType.SHOCKWAVE, x: letter.x, y: letter.y, radius: 10, vx: 0, vy: 0, alpha: 1, color: 'white', life: 1, maxLife: 1, growth: 800
                    });
@@ -821,7 +757,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             p.vx *= 0.95; p.vy *= 0.95; p.y -= 0.5 * timeScale;
         }
       });
-      // Safety Filter: Remove dead OR nan particles
       particlesRef.current = particlesRef.current.filter(p => p.life > 0 && !isNaN(p.x) && !isNaN(p.y));
 
       obstaclesRef.current = obstaclesRef.current.filter(e => !e.markedForDeletion);
@@ -860,25 +795,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
          ctx.fillStyle = "black";
          ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       } else {
-        // Sky
         const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
         gradient.addColorStop(0, level.backgroundGradient[0]);
         gradient.addColorStop(1, level.backgroundGradient[1]);
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        // Stars
         drawStars(ctx, timestamp);
         
-        // Joy Ride City Skyline
         if (joyRideModeRef.current) {
-            // Draw Distant Horizon City First
             distantCitySkylineRef.current.forEach(b => {
                const by = CANVAS_HEIGHT - b.height + 20;
-               ctx.fillStyle = "#0f172a"; // Very dark blue/slate
+               ctx.fillStyle = "#0f172a";
                ctx.fillRect(b.x, by, b.width, b.height);
                
-               // Tiny Distant Windows
                ctx.fillStyle = "#fde68a";
                ctx.globalAlpha = 0.3;
                b.windows.forEach(w => {
@@ -889,19 +819,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                ctx.globalAlpha = 1.0;
             });
 
-            // Draw Foreground City
             citySkylineRef.current.forEach(b => {
                const by = CANVAS_HEIGHT - b.height + 50;
-               // Draw Building Silhouette
                ctx.fillStyle = "#f59e0b"; 
                ctx.globalAlpha = 0.3;
                ctx.fillRect(b.x, by, b.width, b.height);
                
-               // Draw Windows (Twinkling)
                ctx.globalAlpha = 0.6;
                ctx.fillStyle = "#fef3c7";
-               b.windows?.forEach(w => { // SAFETY CHECK
-                   if (Math.sin(timestamp / 200 + w.x) > 0) { // Random twinkle
+               b.windows?.forEach(w => {
+                   if (Math.sin(timestamp / 200 + w.x) > 0) {
                        ctx.fillRect(b.x + w.x, by + w.y, 5, 8);
                    }
                });
@@ -909,14 +836,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             });
         }
 
-        // Sun/Moon logic
         ctx.save();
         ctx.shadowBlur = 50;
         ctx.shadowColor = "rgba(255, 255, 200, 0.5)";
         let celestialY = 100;
         if (gameMode === GameMode.STORY && progressRatio > 0.90) {
-            // Sunrise animation
-            const sunY = 400 - ((progressRatio - 0.90) * 3000); // Sun rising fast
+            const sunY = 400 - ((progressRatio - 0.90) * 3000);
             ctx.fillStyle = "#fde047";
             ctx.beginPath(); ctx.arc(CANVAS_WIDTH - 150, sunY, 80, 0, Math.PI * 2); ctx.fill();
         } else {
@@ -969,7 +894,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             ctx.fillStyle = p.color; ctx.globalCompositeOperation = 'lighter'; ctx.shadowBlur = 20; ctx.shadowColor = p.color;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); ctx.fill();
         } else if (p.type === ParticleType.LIFE) {
-            // Hearts logic (Cheering)
             ctx.fillStyle = p.color;
             const size = p.radius;
             ctx.translate(p.x, p.y);
@@ -989,37 +913,31 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       });
 
       if (!promoMode) {
-          // Vignette & Atmosphere
           const vignette = ctx.createRadialGradient(CANVAS_WIDTH/2, CANVAS_HEIGHT/2, CANVAS_HEIGHT/2, CANVAS_WIDTH/2, CANVAS_HEIGHT/2, CANVAS_WIDTH);
           vignette.addColorStop(0, "rgba(0,0,0,0)");
           vignette.addColorStop(1, "rgba(0,0,0,0.6)");
           ctx.fillStyle = vignette; ctx.fillRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-          // ACT II: Desaturation Overlay
           if (saturationRef.current < 1.0) {
-             ctx.fillStyle = `rgba(30, 41, 59, ${0.9 - (saturationRef.current * 0.9)})`; // Blue-Gray tint
+             ctx.fillStyle = `rgba(30, 41, 59, ${0.9 - (saturationRef.current * 0.9)})`;
              ctx.fillRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
           }
 
-          // ACT IV: Flicker / Lights Out
           if (isLightsOutRef.current) {
               ctx.fillStyle = "black";
               ctx.fillRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
               
-              // Draw Rudolph's Nose glowing in dark
               ctx.save();
               ctx.translate(playerRef.current.x + playerRef.current.width, playerRef.current.y + 15);
               ctx.shadowBlur = 30; ctx.shadowColor = "red"; ctx.fillStyle = "red";
               ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
               ctx.restore();
 
-              // Draw Letters in dark
               lettersRef.current.forEach(l => {
-                  if (l.isGolden) drawLetter(ctx, l); // Only golden letters visible
+                  if (l.isGolden) drawLetter(ctx, l);
               });
           }
 
-          // Flash Effect (Explosions or Finale)
           if (flashTimerRef.current > 0) {
              ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(1, flashTimerRef.current)})`;
              ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -1033,10 +951,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     return () => cancelAnimationFrame(animationFrameId);
   }, [gameState, cinematicMode, promoMode, gameMode]);
 
-  // --- Helpers ---
-
   const createFirework = (x: number, y: number) => {
-      // Burst of colors
       const colors = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899'];
       const color = colors[Math.floor(Math.random() * colors.length)];
       
@@ -1049,7 +964,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
             alpha: 1, color, life: Math.random() * 0.8 + 0.5, maxLife: 1.5, growth: -5
           });
       }
-      // Center glow
       particlesRef.current.push({
           id: Math.random(), type: ParticleType.GLOW, x, y, radius: 20, vx: 0, vy: 0, alpha: 1, color: 'white', life: 0.5, maxLife: 0.5, growth: 100
       });
@@ -1230,13 +1144,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const drawLandmark = (ctx: CanvasRenderingContext2D, lm: Landmark) => {
       ctx.save(); ctx.translate(lm.x, lm.y);
       if (lm.type === 'CLOCK_TOWER') {
-          // Roof
           ctx.fillStyle = "#0f172a";
           ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(lm.width/2, -80); ctx.lineTo(lm.width + 10, 0); ctx.fill();
 
           ctx.fillStyle = "#1e293b";
           ctx.fillRect(0, 0, lm.width, lm.height);
-          // Clock face
           ctx.fillStyle = "#fef3c7";
           ctx.beginPath(); ctx.arc(lm.width/2, 60, 40, 0, Math.PI*2); ctx.fill();
           ctx.strokeStyle = "#000"; ctx.lineWidth = 4;
@@ -1245,25 +1157,21 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       } else if (lm.type === 'LIGHTHOUSE') {
            ctx.fillStyle = "#ef4444";
            ctx.beginPath(); ctx.moveTo(20, lm.height); ctx.lineTo(lm.width-20, lm.height); ctx.lineTo(lm.width/2 + 20, 40); ctx.lineTo(lm.width/2 - 20, 40); ctx.fill();
-           ctx.fillStyle = "#fff"; // Stripes
+           ctx.fillStyle = "#fff"; 
            ctx.fillRect(25, lm.height - 100, lm.width - 50, 20);
            ctx.fillRect(30, lm.height - 200, lm.width - 60, 20);
-           // Light
            ctx.fillStyle = "yellow"; ctx.globalAlpha = 0.6;
            ctx.beginPath(); ctx.moveTo(lm.width/2, 40); ctx.lineTo(-200, -100); ctx.lineTo(200, -100); ctx.fill();
       } else if (lm.type === 'FINAL_HOUSE') {
-           ctx.fillStyle = "#78350f"; // Wood
+           ctx.fillStyle = "#78350f"; 
            ctx.fillRect(20, lm.height - 150, lm.width - 40, 150);
-           ctx.fillStyle = "#451a03"; // Roof
+           ctx.fillStyle = "#451a03"; 
            ctx.beginPath(); ctx.moveTo(0, lm.height - 150); ctx.lineTo(lm.width/2, lm.height - 280); ctx.lineTo(lm.width, lm.height - 150); ctx.fill();
-           // Windows
            ctx.fillStyle = "#fbbf24"; 
            ctx.fillRect(40, lm.height - 100, 40, 40); ctx.fillRect(lm.width - 80, lm.height - 100, 40, 40);
       } else {
-          // Generic Building
           ctx.fillStyle = "#334155";
           ctx.fillRect(0, 0, lm.width, lm.height);
-          // Windows
           ctx.fillStyle = "#475569";
           for(let i=10; i<lm.width-10; i+=20) {
                for(let j=20; j<lm.height-10; j+=40) {
@@ -1278,32 +1186,25 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       ctx.save(); 
       ctx.translate(pup.x, pup.y);
       
-      // Draw Gift Box
       ctx.fillStyle = POWERUP_COLORS[pup.type];
       ctx.shadowColor = POWERUP_COLORS[pup.type];
       ctx.shadowBlur = 15;
       ctx.fillRect(0, 0, pup.width, pup.height);
       
-      // Ribbons (White cross)
       ctx.fillStyle = "rgba(255,255,255,0.8)";
-      // Vertical ribbon
       ctx.fillRect(pup.width / 2 - 5, 0, 10, pup.height);
-      // Horizontal ribbon
       ctx.fillRect(0, pup.height / 2 - 5, pup.width, 10);
       
-      // Bow
       ctx.fillStyle = "#fff";
       ctx.beginPath();
       ctx.arc(pup.width / 2 - 8, -4, 8, 0, Math.PI * 2);
       ctx.arc(pup.width / 2 + 8, -4, 8, 0, Math.PI * 2);
       ctx.fill();
       
-      // Outline
       ctx.strokeStyle = "white";
       ctx.lineWidth = 2;
       ctx.strokeRect(0, 0, pup.width, pup.height);
       
-      // Add Emoji
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = "20px Arial";
@@ -1323,13 +1224,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const drawLetter = (ctx: CanvasRenderingContext2D, letter: Letter) => {
       ctx.save(); ctx.translate(letter.x, letter.y);
       ctx.rotate(Math.sin(letter.floatOffset) * 0.2);
-      // Envelope body
       ctx.fillStyle = letter.isGolden ? "#fef3c7" : "#f1f5f9";
       ctx.shadowColor = letter.isGolden ? "#fbbf24" : "rgba(0,0,0,0.3)";
       ctx.shadowBlur = letter.isGolden ? 15 : 5;
       
       ctx.fillRect(0, 0, letter.width, letter.height);
-      // Envelope flap
       ctx.fillStyle = letter.isGolden ? "#fde68a" : "#e2e8f0";
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(letter.width/2, letter.height/1.5); ctx.lineTo(letter.width, 0); ctx.fill();
       
@@ -1337,7 +1236,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           ctx.strokeStyle = "#d97706"; ctx.lineWidth = 1; ctx.strokeRect(0,0, letter.width, letter.height);
       }
       
-      // Wax seal
       ctx.fillStyle = "#ef4444";
       ctx.beginPath(); ctx.arc(letter.width/2, letter.height/2.5, 4, 0, Math.PI*2); ctx.fill();
       
@@ -1368,7 +1266,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         />
       )}
 
-      {/* Debug Menu */}
       {debugMenuOpen && (
           <div className="absolute top-4 left-4 z-50 bg-slate-900/90 border border-slate-600 p-4 rounded-lg shadow-2xl text-white w-64 animate-fade-in">
               <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2">
@@ -1420,7 +1317,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           </div>
       )}
       
-      {/* Mobile Tap Zones */}
       <div className="absolute inset-0 flex md:hidden z-40 pointer-events-auto">
         <div className="w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {playerRef.current.vy = JUMP_STRENGTH; soundManager.playJump();} }} />
         <div className="w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {shootSnowball();} }} />

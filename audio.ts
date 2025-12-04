@@ -1,30 +1,25 @@
 
-// Audio Engine for Sleigh Ride
 
 export class SoundManager {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
   
-  // Sleigh Loop
   private sleighSource: AudioBufferSourceNode | null = null;
   private sleighGain: GainNode | null = null;
 
-  // Ending Music
   private endingAudio: HTMLAudioElement | null = null;
   private musicFadeInterval: number | null = null;
 
-  // Biome Music
   private bgmTracks: Map<string, HTMLAudioElement> = new Map();
   private currentBgm: HTMLAudioElement | null = null;
 
   constructor() {
     if (typeof Audio !== 'undefined') {
       this.endingAudio = new Audio('./ending.mp3');
-      this.endingAudio.volume = 0; // Start at 0 for fade-in
+      this.endingAudio.volume = 0; 
       this.endingAudio.preload = 'auto';
 
-      // Initialize Biome Tracks
       const tracks = [
           { id: 'wonderland', src: './wonderland.mp3' },
           { id: 'gray_world', src: './gray_world.mp3' },
@@ -63,7 +58,6 @@ export class SoundManager {
 
     this.startSleighLoop();
     
-    // Unlock audio elements
     if (this.endingAudio) this.endingAudio.load();
     this.bgmTracks.forEach(track => track.load());
   }
@@ -73,16 +67,8 @@ export class SoundManager {
     this.stopBgm();
   }
 
-  // --- BGM Logic ---
-
   playLevelBgm(levelIndex: number) {
       let trackKey: string | null = null;
-      // Map levels to tracks. 
-      // Level 0: Departure -> wonderland
-      // Level 1: Gray World -> gray_world
-      // Level 2: Ocean -> ocean_of_silence
-      // Level 3: Blizzard -> great_blizzard
-      // Level 4 (Finale) -> Silence (handled by fading out current, then ending.mp3 takes over)
       if (levelIndex === 0) trackKey = 'wonderland';
       else if (levelIndex === 1) trackKey = 'gray_world';
       else if (levelIndex === 2) trackKey = 'ocean_of_silence';
@@ -98,9 +84,8 @@ export class SoundManager {
   private transitionBgm(trackKey: string | null) {
       const newTrack = trackKey ? this.bgmTracks.get(trackKey) : null;
       
-      if (this.currentBgm === newTrack) return; // Already playing this track
+      if (this.currentBgm === newTrack) return; 
 
-      // Fade out current
       if (this.currentBgm) {
           const oldTrack = this.currentBgm;
           this.fadeVolume(oldTrack, 0, 1500, () => {
@@ -109,11 +94,10 @@ export class SoundManager {
           });
       }
 
-      // Fade in new
       if (newTrack) {
           newTrack.volume = 0;
           newTrack.play().catch(e => console.warn("BGM play failed", e));
-          this.fadeVolume(newTrack, 0.3, 1500); // Target volume 0.3
+          this.fadeVolume(newTrack, 0.3, 1500); 
           this.currentBgm = newTrack;
       } else {
           this.currentBgm = null;
@@ -128,11 +112,9 @@ export class SoundManager {
       
       const interval = setInterval(() => {
           let newVol = audio.volume + stepVol;
-          // Clamp
           newVol = Math.max(0, Math.min(1, newVol));
           audio.volume = newVol;
           
-          // Check completion (accounting for float precision)
           if ((stepVol >= 0 && newVol >= target) || (stepVol < 0 && newVol <= target)) {
               audio.volume = target;
               clearInterval(interval);
@@ -140,8 +122,6 @@ export class SoundManager {
           }
       }, stepTime);
   }
-
-  // --- SFX Generators ---
 
   playJump() {
     if (!this.ctx || !this.sfxGain) return;
@@ -152,7 +132,7 @@ export class SoundManager {
     osc.frequency.setValueAtTime(150, this.ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.2);
     
-    gain.gain.setValueAtTime(0.2, this.ctx.currentTime); // Reduced volume
+    gain.gain.setValueAtTime(0.2, this.ctx.currentTime); 
     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
     
     osc.connect(gain);
@@ -164,19 +144,18 @@ export class SoundManager {
 
   playShoot() {
     if (!this.ctx || !this.sfxGain) return;
-    this.createNoiseBurst(0.05, 2000, 0, 0.3); // Reduced volume
+    this.createNoiseBurst(0.05, 2000, 0, 0.3); 
   }
 
   playCrash() {
     if (!this.ctx || !this.sfxGain) return;
-    // Changed from Sawtooth (harsh) to Triangle (softer) and lowered pitch for a "thud"
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = 'triangle'; 
-    osc.frequency.setValueAtTime(60, this.ctx.currentTime); // Lower pitch (60Hz)
+    osc.frequency.setValueAtTime(60, this.ctx.currentTime); 
     osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.3);
     
-    gain.gain.setValueAtTime(0.4, this.ctx.currentTime); // Reduced gain
+    gain.gain.setValueAtTime(0.4, this.ctx.currentTime); 
     gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
     
     osc.connect(gain);
@@ -184,23 +163,21 @@ export class SoundManager {
     osc.start();
     osc.stop(this.ctx.currentTime + 0.3);
     
-    // Add low thud noise
     this.createNoiseBurst(0.3, 500, 50, 0.3);
   }
 
   playPowerup(typeStr: string) {
     if (!this.ctx || !this.sfxGain) return;
     const now = this.ctx.currentTime;
-    // Softer chime
-    const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+    const notes = [523.25, 659.25, 783.99, 1046.50]; 
     notes.forEach((freq, i) => {
       const osc = this.ctx!.createOscillator();
       const gain = this.ctx!.createGain();
-      osc.type = 'sine'; // Changed from Square to Sine for softness
+      osc.type = 'sine'; 
       osc.frequency.value = freq;
       const startTime = now + i * 0.05;
       
-      gain.gain.setValueAtTime(0.05, startTime); // Heavily reduced volume
+      gain.gain.setValueAtTime(0.05, startTime); 
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.1);
       
       osc.connect(gain);
@@ -257,20 +234,16 @@ export class SoundManager {
     osc.stop(this.ctx.currentTime + 0.5);
   }
 
-  // --- Music Logic ---
-
   playEndingMusic(startOffsetSeconds: number = 0, fadeDurationSeconds: number = 10) {
     if (!this.endingAudio) {
         console.warn("Ending audio element not initialized");
         return;
     }
     
-    // Stop any active BGM first
     this.stopBgm();
     
     console.log(`Triggering ending music with fade.`);
     
-    // Force reset to ensure it plays every time, even on restarts
     this.endingAudio.pause();
     this.endingAudio.currentTime = startOffsetSeconds;
     this.endingAudio.volume = 0;
@@ -278,9 +251,8 @@ export class SoundManager {
     this.endingAudio.play()
         .then(() => {
             console.log("Ending music started. Fading in...");
-            // Fade in logic
             let vol = 0;
-            const step = 1 / (fadeDurationSeconds * 10); // Update every 100ms
+            const step = 1 / (fadeDurationSeconds * 10); 
             
             if (this.musicFadeInterval) clearInterval(this.musicFadeInterval);
             
@@ -307,8 +279,6 @@ export class SoundManager {
         this.musicFadeInterval = null;
     }
   }
-
-  // --- Helpers ---
 
   private createNoiseBurst(duration: number, filterFreq: number, q: number, vol: number = 0.5) {
     if (!this.ctx || !this.sfxGain) return;
@@ -337,7 +307,6 @@ export class SoundManager {
     noise.start();
   }
 
-  // --- Sleigh Loop (Wind + Runners) ---
   private startSleighLoop() {
     if (!this.ctx || !this.sfxGain) return;
     const bufferSize = this.ctx.sampleRate * 2;
@@ -366,7 +335,6 @@ export class SoundManager {
 
   setSleighVolume(speed: number) {
     if (this.sleighGain && this.ctx) {
-      // Volume logic
       const vol = Math.min(0.2, Math.max(0.05, speed / 50));
       this.sleighGain.gain.setTargetAtTime(vol, this.ctx.currentTime, 0.1);
     }

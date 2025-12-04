@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Heart, Snowflake, Clock, Zap, Sparkles, Plus, Mail } from 'lucide-react';
 import { Player, PowerupType, DialogueLine } from '../types.ts';
@@ -63,7 +64,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   return (
     <div className="absolute inset-0 flex flex-col justify-between p-6 pointer-events-none z-20">
       
-      {/* Central Popups Layer (Powerups only, kept minimal) */}
       <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
         {popups.map(p => {
             const { icon: Icon, label, color } = getPowerupConfig(p.type);
@@ -82,7 +82,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         })}
       </div>
 
-      {/* Narrative Layer: Compact Wish Notification (Bottom Right) */}
       {activeWish && (
           <div className="absolute top-28 right-4 flex flex-col items-end animate-slide-in-right z-30">
              <div className="bg-amber-100/95 text-amber-900 pl-4 pr-6 py-2 rounded-l-full shadow-xl border-l-4 border-amber-400 backdrop-blur-sm max-w-xs text-right flex items-center gap-3 transform hover:scale-105 transition-transform">
@@ -97,7 +96,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
       )}
 
-      {/* Narrative Layer: Cinematic Subtitles (Bottom) */}
       {activeDialogue && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent pb-8 pt-12 flex justify-center animate-slide-up z-20">
              <div className="flex flex-col items-center text-center max-w-3xl px-4">
@@ -111,10 +109,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
       )}
 
-      {/* Top HUD */}
       <div className="flex items-start justify-between w-full z-10">
         
-        {/* Left: Stats */}
         <div className="flex flex-col gap-3 animate-slide-in-left">
           <div className="flex items-center gap-1 p-2 bg-slate-900/40 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg">
             {[1, 2, 3].map((i) => (
@@ -136,7 +132,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
         </div>
 
-        {/* Center: Timer & Level */}
         <div className="flex flex-col items-center animate-fade-in-down">
           <div className={`
             flex items-center gap-3 text-3xl font-black px-6 py-2 rounded-xl shadow-2xl transition-all duration-500 border-2
@@ -153,7 +148,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           </div>
         </div>
 
-        {/* Right: Score */}
         <div className="animate-slide-in-right">
              <div className="bg-slate-900/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-slate-700 shadow-lg text-right">
                 <div className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Score</div>
@@ -164,7 +158,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         </div>
       </div>
 
-      {/* Bottom Bar: Progress (Shifted up slightly to avoid subtitle overlap) */}
       <div className="w-full max-w-3xl mx-auto mb-12 animate-slide-up z-10 opacity-80 hover:opacity-100 transition-opacity">
          <div className="flex justify-between text-xs font-bold mb-1 px-1 text-slate-300 uppercase tracking-wider drop-shadow-md">
             <span>North Pole</span>

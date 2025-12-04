@@ -37,7 +37,6 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
     const timer1 = setTimeout(() => setStage(1), 500); 
     const timer2 = setTimeout(() => setStage(2), 3500); 
     const timer3 = setTimeout(() => setStage(3), 14000); 
-    // Button appears after credits scroll a bit (delayed more due to longer credits)
     const timer4 = setTimeout(() => setShowButton(true), 35000);
 
     return () => {
@@ -48,7 +47,6 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
     };
   }, []);
 
-  // Santa idle animation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -60,11 +58,9 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
       ctx.save();
       ctx.translate(canvas.width / 2, canvas.height / 2 + Math.sin(time / 500) * 5);
       ctx.scale(1.5, 1.5);
-      // Shadow
       ctx.shadowColor = "rgba(0,0,0,0.5)";
       ctx.shadowBlur = 10;
       ctx.shadowOffsetY = 10;
-      // Sleigh Body
       const grad = ctx.createLinearGradient(0, -20, 0, 20);
       grad.addColorStop(0, "#dc2626");
       grad.addColorStop(1, "#991b1b");
@@ -75,7 +71,6 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
       ctx.lineTo(30, -5);
       ctx.lineTo(-30, -5);
       ctx.fill();
-      // Runners
       ctx.strokeStyle = "#facc15";
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -84,7 +79,6 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
       ctx.moveTo(-25, 20);
       ctx.bezierCurveTo(-35, 15, -35, 5, -25, 5);
       ctx.stroke();
-      // Santa
       ctx.fillStyle = "#fca5a5"; 
       ctx.beginPath(); ctx.arc(0, -15, 8, 0, Math.PI*2); ctx.fill();
       ctx.fillStyle = "white";
@@ -143,9 +137,7 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
         `}
       </style>
 
-      {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Stars */}
           {[...Array(50)].map((_, i) => (
             <div key={`star-${i}`} className="absolute bg-white rounded-full opacity-50 animate-pulse"
               style={{
@@ -158,14 +150,12 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
             />
           ))}
 
-          {/* Fireworks (Only in Stage 3) */}
           {stage >= 3 && [...Array(5)].map((_, i) => (
              <div key={`fw-${i}`} className="firework"
                 style={{
                     top: `${Math.random() * 50}%`,
                     left: `${Math.random() * 100}%`,
                     animationDelay: `${Math.random() * 2}s`,
-                    // @ts-ignore
                     '--color': ['#ef4444', '#eab308', '#3b82f6', '#22c55e'][Math.floor(Math.random() * 4)],
                     '--initialSize': '0.5rem',
                     '--finalSize': '10rem',
@@ -175,31 +165,25 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
              ></div>
           ))}
 
-          {/* City Skyline Silhouette - Enhanced */}
           <div className="absolute bottom-0 left-0 right-0 h-64 opacity-90 z-10 transition-transform duration-[20s] ease-linear" style={{ transform: stage >= 3 ? 'scale(1.05)' : 'scale(1)' }}>
                
-               {/* Layer 1: Distant (Purple/Slate) */}
                <div className="absolute bottom-0 w-full h-48 flex items-end justify-around px-4 opacity-60 text-slate-800">
                    {[...Array(20)].map((_, i) => (
                        <div key={`b1-${i}`} className="w-full mx-0.5 bg-current rounded-t-md" style={{ height: `${30 + Math.random() * 40}%` }}></div>
                    ))}
                </div>
 
-               {/* Layer 2: Mid-Distance (Darker Blue) */}
                <div className="absolute bottom-0 w-full h-40 flex items-end justify-around px-2 text-slate-900 opacity-80">
                    {[...Array(15)].map((_, i) => (
                        <div key={`b2-${i}`} className="w-full mx-1 bg-current rounded-t-lg relative" style={{ height: `${40 + Math.random() * 50}%` }}>
-                           {/* Random Windows */}
                            {Math.random() > 0.5 && <div className="absolute top-4 left-1/2 -translate-x-1/2 w-1 h-1 bg-yellow-600/50 rounded-full" />}
                        </div>
                    ))}
                </div>
 
-               {/* Layer 3: Foreground (Black Silhouette with Lights) */}
                <div className="absolute bottom-0 w-full h-32 flex items-end justify-around text-black">
                    {[...Array(30)].map((_, i) => (
                        <div key={`b3-${i}`} className="w-full mx-0.5 bg-current rounded-t-sm relative group" style={{ height: `${20 + Math.random() * 80}%` }}>
-                           {/* Windows */}
                            {Math.random() > 0.3 && (
                                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse shadow-[0_0_5px_rgba(250,204,21,0.8)]" 
                                     style={{ animationDelay: `${Math.random() * 5}s` }} />
@@ -213,12 +197,10 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
           </div>
       </div>
 
-      {/* Stage 1: Arrival (Flying in) */}
       <div className={`transition-all duration-1000 transform ${stage === 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 absolute'} z-20 flex flex-col items-center`}>
          <div className="mb-8"><canvas ref={canvasRef} width={150} height={100} /></div>
       </div>
 
-      {/* Stage 2: The Message */}
       <div className={`absolute inset-0 flex items-center justify-center px-8 transition-opacity duration-1000 ${stage === 2 ? 'opacity-100' : 'opacity-0 pointer-events-none'} z-30`}>
         <div className="max-w-3xl text-center space-y-8">
             <p className="text-3xl md:text-5xl font-christmas leading-relaxed text-blue-100 drop-shadow-lg">
@@ -230,15 +212,12 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
         </div>
       </div>
 
-      {/* Stage 3: Credits & Restart */}
       <div className={`absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-1000 ${stage >= 3 ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'} z-40 overflow-hidden`}>
         
-        {/* Fixed Header */}
         <div className={`absolute top-10 md:top-20 transition-all duration-1000 z-50 text-center ${stage >= 3 ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-10'}`}>
              <h1 className="text-5xl md:text-7xl font-christmas text-red-500 drop-shadow-[0_0_25px_rgba(220,38,38,0.8)] animate-pulse-slow">Merry Christmas</h1>
         </div>
 
-        {/* Scrolling Credits Container */}
         <div className="h-[60vh] w-full max-w-lg relative overflow-hidden mt-20 mask-linear-fade z-40">
             <div className="absolute top-0 left-0 w-full flex flex-col items-center space-y-8 md:space-y-12 animate-credit-scroll" style={{ transform: 'translateY(100%)' }}>
                 {credits.map((credit, idx) => (
@@ -254,7 +233,6 @@ const VictorySequence: React.FC<VictorySequenceProps> = ({ onRestart }) => {
             </div>
         </div>
 
-        {/* Fixed Bottom Button */}
         <div className={`absolute bottom-12 md:bottom-16 transition-all duration-1000 transform z-50 ${showButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <button 
             onClick={onRestart}

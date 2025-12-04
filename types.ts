@@ -14,11 +14,11 @@ export enum GameMode {
 }
 
 export enum PowerupType {
-  SPEED = 'SPEED',         // Red
-  SNOWBALLS = 'SNOWBALLS', // White/Cyan
-  BLAST = 'BLAST',         // Gold
-  HEALING = 'HEALING',     // Green
-  LIFE = 'LIFE'            // Pink
+  SPEED = 'SPEED',
+  SNOWBALLS = 'SNOWBALLS',
+  BLAST = 'BLAST',
+  HEALING = 'HEALING',
+  LIFE = 'LIFE'
 }
 
 export interface Entity {
@@ -38,12 +38,12 @@ export interface Player extends Entity {
   invincibleTimer: number;
   healingTimer: number;
   speedTimer: number;
-  angle: number; // For rotation animation
+  angle: number;
 }
 
 export interface Obstacle extends Entity {
   type: 'TREE' | 'BIRD' | 'SNOWMAN' | 'BUILDING' | 'CLOUD';
-  rotation?: number; // For tumbling effect on death
+  rotation?: number;
 }
 
 export interface Landmark extends Entity {
@@ -59,12 +59,12 @@ export interface Powerup extends Entity {
 export interface Letter extends Entity {
   message: string;
   floatOffset: number;
-  isGolden?: boolean; // For Act II story moments
+  isGolden?: boolean;
 }
 
 export interface Projectile extends Entity {
   vx: number;
-  trail: {x: number, y: number}[]; // For visual trail
+  trail: {x: number, y: number}[];
 }
 
 export enum ParticleType {
@@ -90,7 +90,7 @@ export interface Particle {
   color: string;
   life: number;
   maxLife: number;
-  growth: number; // How much radius changes per second
+  growth: number;
 }
 
 export interface LevelConfig {
