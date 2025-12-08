@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sleigh Ride Adventure</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Nunito:wght@400;700&display=swap');
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #0f172a;
+      color: white;
+      overflow: hidden;
+    }
+    .font-christmas {
+      font-family: 'Mountains of Christmas', cursive;
+    }
+    /* Tailwind animations */
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    .animate-pulse-slow {
+      animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spin-slow 3s linear infinite;
+    }
+    @keyframes bounce-slow {
+      0%, 100% { transform: translateY(-5%); }
+      50% { transform: translateY(0); }
+    }
+    .animate-bounce-slow {
+      animation: bounce-slow 3s infinite ease-in-out;
+    }
+    
+    /* Logo Lights Animation */
+    @keyframes christmas-lights {
+      0% { filter: hue-rotate(0deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
+      25% { filter: hue-rotate(90deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
+      50% { filter: hue-rotate(180deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
+      75% { filter: hue-rotate(270deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
+      100% { filter: hue-rotate(360deg) drop-shadow(0 5px 15px rgba(0,0,0,0.5)); }
+    }
+    .animate-christmas-lights {
+      animation: christmas-lights 4s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    /* Powerup Popup Animation */
+    @keyframes powerup-pop {
+      0% { opacity: 0; transform: scale(0.5) translateY(50px); }
+      20% { opacity: 1; transform: scale(1.5) translateY(0); }
+      40% { transform: scale(1.2) translateY(-10px); }
+      80% { opacity: 1; transform: scale(1.2) translateY(-30px); }
+      100% { opacity: 0; transform: scale(0.8) translateY(-60px); }
+    }
+    .animate-powerup-pop {
+      animation: powerup-pop 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    /* UI Entrance Animations */
+    @keyframes slide-up {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-slide-up {
+      animation: slide-up 0.5s ease-out forwards;
+    }
+
+    @keyframes slide-in-right {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .animate-slide-in-right {
+      animation: slide-in-right 0.5s ease-out forwards;
+    }
+
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+      animation: fade-in-up 0.5s ease-out forwards;
+    }
+    
+    /* Loading Screen Styles */
+    #loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #0f172a;
+      z-index: 9999;
+      transition: opacity 0.5s;
+    }
+    .loader-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #1e293b;
+      border-top: 5px solid #22c55e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+    "lucide-react": "https://esm.sh/lucide-react@0.263.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- Initial Loading Indicator -->
+  <div id="loader">
+    <div class="loader-spinner"></div>
+    <h2 class="font-christmas text-2xl text-white">Loading Game Resources...</h2>
+    <p id="loader-status" class="text-slate-400 text-sm mt-2 font-mono">Initializing...</p>
+    <div id="error-container" class="hidden mt-4 p-4 bg-red-900/50 border border-red-500 rounded text-red-200 text-xs text-left max-w-md overflow-auto max-h-60 whitespace-pre-wrap font-mono"></div>
+  </div>
+
+  <script>
+    async function loadGame() {
+      const status = document.getElementById('loader-status');
+      const errorContainer = document.getElementById('error-container');
+      
+      const path = window.location.pathname;
+      if (!path.endsWith('/') && !path.endsWith('.html')) {
+        status.innerText = "Redirecting to fix paths...";
+        const newUrl = window.location.href.replace(path, path + '/');
+        window.location.replace(newUrl);
+        return; 
+      }
+
+      function showError(msg, details = "") {
+        status.innerText = "Error Loading Game";
+        status.style.color = "#ef4444";
+        errorContainer.classList.remove('hidden');
+        const formattedDetails = details.replace(
+            /(https?:\/\/[^\s]+)/g, 
+            '<a href="$1" class="underline text-blue-300 hover:text-white" target="_blank">$1</a>'
+        );
+        errorContainer.innerHTML = `<strong>${msg}</strong><br/><br/>${formattedDetails}`;
+        document.querySelector('.loader-spinner').style.borderColor = '#ef4444';
+        document.querySelector('.loader-spinner').style.borderTopColor = '#ef4444';
+        document.querySelector('.loader-spinner').style.animation = 'none';
+      }
+
+      const fileMap = {
+        'types.ts': './types.ts',
+        'constants.ts': './constants.ts',
+        'audio.ts': './audio.ts',
+        'VictorySequence.tsx': './components/VictorySequence.tsx',
+        'UIOverlay.tsx': './components/UIOverlay.tsx',
+        'GameCanvas.tsx': './components/GameCanvas.tsx',
+        'App.tsx': './App.tsx',
+        'index.tsx': './index.tsx'
+      };
+
+      const blobUrls = {};
+
+      async function fetchWithFallback(url) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) return await res.text();
+          throw new Error(`HTTP ${res.status}`);
+        } catch (err) {
+          const parts = url.split('/');
+          const filename = parts.pop();
+          const capitalized = filename.charAt(0).toUpperCase() + filename.slice(1);
+          const newUrl = [...parts, capitalized].join('/');
+          
+          if (newUrl !== url) {
+             console.warn(`Failed to fetch ${url}, retrying as ${newUrl}`);
+             const retryRes = await fetch(newUrl);
+             if (retryRes.ok) return await retryRes.text();
+          }
+          throw err;
+        }
+      }
+
+      try {
+        if (window.location.protocol === 'file:') {
+          throw new Error("CORS_ERROR");
+        }
+
+        for (const [moduleName, serverPath] of Object.entries(fileMap)) {
+          status.innerText = `Loading ${moduleName}...`;
+          
+          try {
+            let code = await fetchWithFallback(serverPath);
+            
+            code = code.replace(/(from\s+['"])(?:.*\/)?([a-zA-Z0-9_-]+\.[a-zA-Z]+)(['"])/g, '$1$2$3');
+
+            const result = Babel.transform(code, {
+              presets: [
+                ['react', { runtime: 'automatic' }],
+                'typescript'
+              ],
+              filename: moduleName,
+            });
+
+            const blob = new Blob([result.code], { type: 'text/javascript' });
+            blobUrls[moduleName] = URL.createObjectURL(blob);
+
+          } catch (fetchErr) {
+            console.error(`Failed to load ${moduleName}:`, fetchErr);
+            if (fetchErr.message === 'CORS_ERROR' || fetchErr.message.includes('Failed to fetch')) {
+               throw new Error("CORS_ERROR");
+            }
+            throw new Error(`Error loading ${moduleName}: ${fetchErr.message}`);
+          }
+        }
+
+        status.innerText = "Linking modules...";
+        const existingMapEl = document.querySelector('script[type="importmap"]');
+        const imports = existingMapEl ? JSON.parse(existingMapEl.textContent).imports : {};
+
+        for (const [moduleName, blobUrl] of Object.entries(blobUrls)) {
+          imports[moduleName] = blobUrl;
+        }
+
+        const mapEl = document.createElement('script');
+        mapEl.type = 'importmap';
+        mapEl.textContent = JSON.stringify({ imports });
+        document.head.appendChild(mapEl);
+
+        status.innerText = "Starting...";
+        await import(blobUrls['index.tsx']);
+        
+        const loader = document.getElementById('loader');
+        loader.style.opacity = '0';
+        setTimeout(() => loader.remove(), 500);
+
+      } catch (error) {
+        console.error(error);
+        if (error.message === 'CORS_ERROR') {
+            showError("Access Restricted", 
+                "Failed to connect to game servers or verify integrity.\n\nPlease play the official version at:\nhttps://leoprimesmatrix.github.io/Sleigh-Ride/");
+        } else {
+            showError("Game Initialization Failed", error.message);
+        }
+      }
+    }
+
+    if (typeof Babel !== 'undefined') {
+      loadGame();
+    } else {
+      document.querySelector('script[src*="babel"]').onload = loadGame;
+    }
+  </script>
+</body>
+</html>
