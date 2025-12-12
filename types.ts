@@ -5,7 +5,8 @@ export enum GameState {
   INTRO,
   PLAYING,
   GAME_OVER,
-  VICTORY
+  VICTORY,
+  BAD_ENDING
 }
 
 export enum GameMode {

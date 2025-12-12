@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Heart, Snowflake, Clock, Zap, Sparkles, Plus, Mail } from 'lucide-react';
 import { Player, PowerupType, DialogueLine } from '../types.ts';
-import { POWERUP_COLORS } from '../constants.ts';
+import { POWERUP_COLORS, REQUIRED_WISHES } from '../constants.ts';
 
 interface UIOverlayProps {
   lives: number;
@@ -15,6 +15,7 @@ interface UIOverlayProps {
   collectedPowerups: { id: number; type: PowerupType }[];
   activeDialogue: DialogueLine | null;
   activeWish: string | null;
+  wishesCollected: number;
 }
 
 const UIOverlay: React.FC<UIOverlayProps> = ({
@@ -27,7 +28,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   score,
   collectedPowerups,
   activeDialogue,
-  activeWish
+  activeWish,
+  wishesCollected
 }) => {
   
   const [popups, setPopups] = useState<{id: number, type: PowerupType}[]>([]);
@@ -60,6 +62,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   };
 
   const isLowTime = timeLeft < 30;
+  const wishProgress = Math.min(100, (wishesCollected / REQUIRED_WISHES) * 100);
   
   return (
     <div className="absolute inset-0 flex flex-col justify-between p-6 pointer-events-none z-20">
@@ -129,6 +132,18 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
           <div className="flex items-center gap-3 bg-cyan-900/40 backdrop-blur-md px-4 py-2 rounded-full border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
             <Snowflake size={20} className="text-cyan-300 animate-spin-slow" />
             <span className="font-black text-xl text-cyan-100 tabular-nums">{snowballs}</span>
+          </div>
+
+          <div className="flex items-center gap-3 bg-amber-900/40 backdrop-blur-md px-4 py-2 rounded-full border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+             <div className="relative">
+                <Mail size={20} className="text-amber-300" />
+                {wishesCollected >= REQUIRED_WISHES && (
+                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
+                )}
+             </div>
+             <span className={`font-black text-xl tabular-nums ${wishesCollected >= REQUIRED_WISHES ? 'text-green-300' : 'text-amber-100'}`}>
+                 {wishesCollected}/{REQUIRED_WISHES}
+             </span>
           </div>
         </div>
 

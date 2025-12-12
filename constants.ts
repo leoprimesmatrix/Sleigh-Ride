@@ -8,6 +8,8 @@ export const JUMP_STRENGTH = -8;
 export const FLIGHT_LIFT = -0.5;
 export const BASE_SPEED = 5;
 
+export const REQUIRED_WISHES = 30;
+
 export const POWERUP_COLORS: Record<PowerupType, string> = {
   [PowerupType.SPEED]: '#ef4444',
   [PowerupType.SNOWBALLS]: '#06b6d4',

@@ -30,11 +30,12 @@ import {
   WISHES,
   NARRATIVE_LETTERS,
   STORY_MOMENTS,
-  LANDMARKS
+  LANDMARKS,
+  REQUIRED_WISHES
 } from '../constants.ts';
 import UIOverlay from './UIOverlay.tsx';
 import { soundManager } from '../audio.ts';
-import { Eye, EyeOff, Shield, Skull, Trophy, Camera, FastForward } from 'lucide-react';
+import { Eye, EyeOff, Shield, Skull, Trophy, Camera, FastForward, Mail } from 'lucide-react';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -81,6 +82,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const cutsceneExplosionTriggeredRef = useRef(false);
 
   const collectedPowerupsRef = useRef<{ id: number; type: PowerupType }[]>([]);
+  const wishesCollectedCountRef = useRef(0);
   const activeDialogueRef = useRef<DialogueLine | null>(null);
   const activeWishRef = useRef<string | null>(null);
   const endingMusicTriggeredRef = useRef(false);
@@ -195,7 +197,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     activeHealing: 0,
     collectedPowerups: [] as { id: number; type: PowerupType }[],
     activeDialogue: null as DialogueLine | null,
-    activeWish: null as string | null
+    activeWish: null as string | null,
+    wishesCollected: 0
   });
 
   useEffect(() => {
@@ -301,6 +304,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       projectilesRef.current = [];
       particlesRef.current = [];
       collectedPowerupsRef.current = [];
+      wishesCollectedCountRef.current = 0;
       activeDialogueRef.current = null;
       activeWishRef.current = null;
       triggeredStoryMomentsRef.current.clear();
@@ -397,13 +401,20 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       let currentSpeed = isEndingSequenceRef.current ? currentSpeedFrame * 0.5 : currentSpeedFrame * speedMultiplier; 
       
       if (gameMode === GameMode.STORY && progressRatio >= 0.90 && !endingMusicTriggeredRef.current) {
-          endingMusicTriggeredRef.current = true;
-          soundManager.playEndingMusic(0, 10);
+          if (wishesCollectedCountRef.current >= REQUIRED_WISHES) {
+             endingMusicTriggeredRef.current = true;
+             soundManager.playEndingMusic(0, 10);
+          }
       }
 
       if (gameMode === GameMode.STORY && progressRatio >= 0.99 && !isEndingSequenceRef.current) {
-          isEndingSequenceRef.current = true;
-          player.isInvincible = true;
+          if (wishesCollectedCountRef.current >= REQUIRED_WISHES) {
+              isEndingSequenceRef.current = true;
+              player.isInvincible = true;
+          } else {
+             setGameState(GameState.BAD_ENDING);
+             return;
+          }
       }
 
       if (isEndingSequenceRef.current) {
@@ -617,7 +628,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         }
       }
       
-      const letterSpawnChance = (gameMode === GameMode.STORY && levelIndex === 4) ? 0.01 : 0.002;
+      // Increased spawn rate to ensure collecting 30 wishes is feasible
+      const letterSpawnChance = (gameMode === GameMode.STORY && levelIndex === 4) ? 0.02 : 0.005;
       
       if (!isEndingSequenceRef.current && Math.random() < letterSpawnChance * timeScale) {
           const msg = WISHES[Math.floor(Math.random() * WISHES.length)];
@@ -720,6 +732,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                    });
               }
               activeWishRef.current = letter.message;
+              wishesCollectedCountRef.current += 1; // Increment wish count
               setTimeout(() => { if (activeWishRef.current === letter.message) activeWishRef.current = null; }, 4000);
           }
       });
@@ -781,7 +794,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           activeHealing: player.healingTimer,
           collectedPowerups: newPowerups,
           activeDialogue: activeDialogueRef.current,
-          activeWish: activeWishRef.current
+          activeWish: activeWishRef.current,
+          wishesCollected: wishesCollectedCountRef.current
         });
       }
     };
@@ -1263,6 +1277,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           collectedPowerups={hudState.collectedPowerups}
           activeDialogue={hudState.activeDialogue}
           activeWish={hudState.activeWish}
+          wishesCollected={hudState.wishesCollected}
         />
       )}
 
@@ -1312,6 +1327,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                     className="w-full flex items-center justify-between px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-red-300 text-sm"
                   >
                      <span className="flex items-center gap-2"><Skull size={14} /> Force Game Over</span>
+                  </button>
+                   <button 
+                    onClick={() => { wishesCollectedCountRef.current += 5; }}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-amber-300 text-sm"
+                  >
+                     <span className="flex items-center gap-2"><Mail size={14} /> Add 5 Wishes</span>
                   </button>
               </div>
           </div>
