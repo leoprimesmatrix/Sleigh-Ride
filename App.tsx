@@ -7,7 +7,7 @@ import { GameState, PowerupType, GameMode } from './types.ts';
 import { POWERUP_COLORS } from './constants.ts';
 import { Play, RefreshCw, HelpCircle, ArrowLeft, Loader2, FileText, X, Bell, Gift, Lock, Infinity as InfinityIcon } from 'lucide-react';
 
-const CURRENT_VERSION = '1.3';
+const CURRENT_VERSION = '1.0.0';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.MENU);
@@ -22,14 +22,6 @@ const App: React.FC = () => {
   const [hasSeenIntro, setHasSeenIntro] = useState(false);
 
   const [introStage, setIntroStage] = useState(0);
-
-  // We need to capture the wishes count from GameCanvas somehow, or track it in parent?
-  // GameCanvas tracks it internally. When setting state to BAD_ENDING, we can't easily pass props up without a callback payload.
-  // However, for the simple BadEndingScreen, we might not need the exact number if we just show "Not enough". 
-  // Or we can hack it by passing a ref down.
-  // Let's rely on GameCanvas to handle the state transition, but we need the final count for the BadEnding screen.
-  // A ref passed to GameCanvas is the easiest way.
-  const finalWishesCountRef = useRef(0);
 
   // Wrapper to capture state changes from GameCanvas
   const handleGameStateChange = (newState: GameState) => {
@@ -114,20 +106,6 @@ const App: React.FC = () => {
       setGameState(GameState.PLAYING);
   };
 
-  // We need to inject a way for GameCanvas to tell us the wish count on bad ending.
-  // GameCanvas is responsible for rendering. 
-  // Actually, let's just make GameCanvas render the ending screens if we wanted to avoid passing data up,
-  // but App.tsx handles the high level state rendering.
-  // We'll trust GameCanvas to update a mutable ref we pass down before calling setGameState(BAD_ENDING).
-  // But wait, standard React doesn't really do "pass ref to child to write to".
-  // Simpler: GameCanvas renders the BadEnding internally? No, App controls it.
-  // Let's modify GameCanvas to accept a callback `onBadEnding(count)` instead of just setting state directly.
-  
-  // Actually, I can just use a global variable or localStorage for this edge case if I really want to avoid prop drilling complex objects, 
-  // but let's stick to modifying GameCanvas to take a ref or callback.
-  // Since I can't easily modify the prop signature of setGameState to include payload in this simple setup without changing types everywhere...
-  // I will just use a simple ref passed to GameCanvas.
-
   return (
     <div className="h-screen overflow-y-auto bg-slate-950 flex flex-col items-center justify-center p-4 select-none font-sans">
       
@@ -142,7 +120,7 @@ const App: React.FC = () => {
                  />
              </div>
           </div>
-          <p className="text-lg md:text-xl text-blue-200 font-bold tracking-widest uppercase">Deliver the Presents. Save Christmas.</p>
+          <p className="text-lg md:text-xl text-blue-200 font-bold tracking-widest uppercase text-shadow-glow">COLLECT THE LETTERS. SAVE CHRISTMAS!</p>
           
           <div className="bg-slate-900/80 p-6 md:p-8 rounded-2xl border-2 border-slate-700 shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-slate-600 mx-4">
             <h2 className="text-xl md:text-2xl font-bold mb-4 text-white">Select Mission</h2>
@@ -210,9 +188,9 @@ const App: React.FC = () => {
                   <Bell size={32} />
               </div>
               
-              <h2 className="text-2xl font-christmas text-white mb-2">New Update Available!</h2>
+              <h2 className="text-2xl font-christmas text-white mb-2">Official Release!</h2>
               <p className="text-slate-300 text-sm mb-6">
-                Version {CURRENT_VERSION} is here with Story Mode, Endless Mode, and enhanced visuals!
+                Sleigh Ride v{CURRENT_VERSION} is here. Join Santa on his biggest adventure yet!
               </p>
               
               <div className="flex flex-col gap-3">
@@ -235,26 +213,63 @@ const App: React.FC = () => {
 
       {showPatchNotes && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-fade-in">
-            <div className="bg-slate-900 border border-slate-600 rounded-xl max-w-md w-full p-6 relative shadow-2xl">
+            <div className="bg-slate-900 border border-slate-600 rounded-xl max-w-lg w-full p-6 relative shadow-2xl flex flex-col max-h-[90vh]">
                <button onClick={() => setShowPatchNotes(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
                   <X size={24} />
                </button>
-               <h2 className="text-2xl font-christmas text-yellow-400 mb-4">Patch Notes v{CURRENT_VERSION}</h2>
-               <div className="space-y-4 text-slate-300 text-sm h-64 overflow-y-auto pr-2 custom-scrollbar">
-                  <div>
-                      <h3 className="font-bold text-white mb-1">🎮 New Game Modes</h3>
-                      <ul className="list-disc pl-4 space-y-1">
-                          <li><strong className="text-green-400">Story Mode:</strong> Restore color to a gray world, brave the storm, and save Christmas in a cinematic adventure!</li>
-                          <li><strong className="text-purple-400">Endless Mode:</strong> Unlocks after completing Story Mode. How far can you fly before the blizzard takes you?</li>
-                      </ul>
+               <h2 className="text-2xl font-christmas text-yellow-400 mb-4 pr-8">PrimeDev Studios Presents: v{CURRENT_VERSION}</h2>
+               
+               <div className="space-y-6 text-slate-300 text-sm overflow-y-auto pr-2 custom-scrollbar flex-1">
+                  <p className="italic text-slate-400">
+                      After quite some time of planning, brainstorming, and kicking ideas around, PrimeDev Studios presents:
+                  </p>
+
+                  <div className="bg-slate-800/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                      <h3 className="text-xl font-bold text-red-500 mb-3 flex items-center gap-2 font-christmas tracking-wide">🎅 Sleigh Ride</h3>
+                      <div className="space-y-4 leading-relaxed">
+                          <p>
+                              Letters and wishes all from across the globe have accidentally been scattered! Roll out with Santa to the cold winter night and collect all the wishes in time for Christmas; or else... <strong className="text-red-400">Christmas WILL be CANCELLED.</strong>
+                          </p>
+                          <p>
+                              Sleigh Ride is a thrilling, fast-paced game designed and developed as a celebration of Christmas, and people's faith from across the world--with one idea and theme in mind: With enough determination and one's will--anyone can overcome any obstacle. Whether you’re here for the latest content or just looking for something exciting to play, Sleigh Ride is built to keep you engaged and thrilled.
+                          </p>
+                      </div>
                   </div>
+
+                  <div className="text-center text-2xl opacity-80 py-1">🎄 🎄 🎄</div>
+
                   <div>
-                      <h3 className="font-bold text-white mb-1">✨ Improvements</h3>
-                      <ul className="list-disc pl-4 space-y-1">
-                          <li><strong>Objective:</strong> Collect 30 Wishes to beat the game!</li>
-                          <li><strong>Visuals:</strong> Added new weather effects, landmarks (Hospital, Orphanage), and day/night cycle.</li>
-                          <li><strong>UI:</strong> Added "Skip Intro" button and polished the main menu.</li>
-                      </ul>
+                      <h3 className="font-bold text-white mb-3 text-lg border-b border-slate-700 pb-2">Game Info & Details</h3>
+                      <div className="space-y-4">
+                          <div>
+                              <h4 className="font-bold text-green-400 flex items-center gap-2">🌟 The Mission</h4>
+                              <p className="mt-1">Navigate through 5 atmospheric levels. Your goal is simple but difficult: Collect <strong className="text-white">30 Wishes</strong> (Letters) scattered throughout the world. If you reach the end without them, the magic won't be strong enough to start Christmas.</p>
+                          </div>
+                          
+                          <div>
+                              <h4 className="font-bold text-purple-400 flex items-center gap-2">♾️ Endless Mode</h4>
+                              <p className="mt-1">Only the true saviors of Christmas can access this. Complete the Story Mode with the true ending to unlock an infinite challenge where the storm never ends.</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <h4 className="font-bold text-blue-400 mb-1">🎮 Controls</h4>
+                                <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm">
+                                    <li><strong>Jump:</strong> Spacebar or Tap Left</li>
+                                    <li><strong>Shoot:</strong> 'Z' Key or Tap Right</li>
+                                    <li><strong>Pause:</strong> '`' (Backtick) key</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-yellow-400 mb-1">⚡ Powerups</h4>
+                                <ul className="list-disc pl-4 space-y-1 text-xs sm:text-sm">
+                                    <li><strong>Speed:</strong> Fly faster</li>
+                                    <li><strong>Snowballs:</strong> Ammo refill</li>
+                                    <li><strong>Blast:</strong> Clear screen</li>
+                                </ul>
+                            </div>
+                          </div>
+                      </div>
                   </div>
                </div>
             </div>
@@ -320,17 +335,10 @@ const App: React.FC = () => {
 
       {(gameState === GameState.PLAYING || gameState === GameState.GAME_OVER || gameState === GameState.VICTORY || gameState === GameState.BAD_ENDING || gameState === GameState.INTRO) && (
         <div className="relative w-full max-w-[1200px] aspect-[2/1] shadow-2xl rounded-xl overflow-hidden">
-          {/* Note: In a real refactor we'd pass a callback to update finalWishesCountRef, but for now we just rely on display value in UI */}
           <GameCanvas 
             gameState={gameState} 
             gameMode={gameMode}
             setGameState={(newState) => {
-                 // Hooking into setGameState to capture wish count if possible, but GameCanvas state is internal.
-                 // We will simply display "Not Enough" on the bad ending screen or "X/30" if we pass the count up.
-                 // For now, GameCanvas handles logic, we just render screen.
-                 // To fix the wish count display on BadEndingSequence, we need to lift state or use a Ref passed down.
-                 // I'll assume for this implementation we simply show the component without the specific count unless I modify GameCanvas to export it.
-                 // ACTUALLY: I can modify GameCanvas to accept a Ref object!
                  setGameState(newState);
             }} 
             onWin={handleWin}
@@ -411,9 +419,6 @@ const App: React.FC = () => {
           
           {gameState === GameState.BAD_ENDING && (
              <BadEndingSequence onRestart={restartGame} wishesCollected={0} />
-             /* Note: wishesCollected is hardcoded to 0 here because getting the Ref value requires more refactoring. 
-                The UI inside BadEndingSequence handles displaying "Target not met" generically if count is 0, or I can update GameCanvas later to lift state. 
-                For now, the player knows they failed. */
           )}
 
           {gameState === GameState.VICTORY && (

@@ -403,7 +403,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       if (gameMode === GameMode.STORY && progressRatio >= 0.90 && !endingMusicTriggeredRef.current) {
           if (wishesCollectedCountRef.current >= REQUIRED_WISHES) {
              endingMusicTriggeredRef.current = true;
-             soundManager.playEndingMusic(0, 10);
+             soundManager.playEndingMusic(0, 5); // 5s fade in
           }
       }
 
@@ -628,7 +628,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         }
       }
       
-      // Increased spawn rate to ensure collecting 30 wishes is feasible
       const letterSpawnChance = (gameMode === GameMode.STORY && levelIndex === 4) ? 0.02 : 0.005;
       
       if (!isEndingSequenceRef.current && Math.random() < letterSpawnChance * timeScale) {

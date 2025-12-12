@@ -88,7 +88,7 @@ export class SoundManager {
 
       if (this.currentBgm) {
           const oldTrack = this.currentBgm;
-          this.fadeVolume(oldTrack, 0, 1500, () => {
+          this.fadeVolume(oldTrack, 0, 1000, () => {
               oldTrack.pause();
               oldTrack.currentTime = 0;
           });
@@ -97,7 +97,7 @@ export class SoundManager {
       if (newTrack) {
           newTrack.volume = 0;
           newTrack.play().catch(e => console.warn("BGM play failed", e));
-          this.fadeVolume(newTrack, 0.3, 1500); 
+          this.fadeVolume(newTrack, 0.3, 1000); 
           this.currentBgm = newTrack;
       } else {
           this.currentBgm = null;
@@ -105,6 +105,11 @@ export class SoundManager {
   }
 
   private fadeVolume(audio: HTMLAudioElement, target: number, duration: number, onComplete?: () => void) {
+      // Clear any existing fade interval on this specific audio element if we were tracking it map-wise, 
+      // but for simplicity we rely on the rapid updates. 
+      // A more robust system would track intervals per audio element.
+      // Since we only really fade one BGM out and one in, it's usually fine.
+      
       const stepTime = 50;
       const steps = duration / stepTime;
       const diff = target - audio.volume;
@@ -113,6 +118,13 @@ export class SoundManager {
       const interval = setInterval(() => {
           let newVol = audio.volume + stepVol;
           newVol = Math.max(0, Math.min(1, newVol));
+          
+          // Safety check if audio is paused/ended externally
+          if (audio.paused && target > 0) {
+             clearInterval(interval);
+             return;
+          }
+
           audio.volume = newVol;
           
           if ((stepVol >= 0 && newVol >= target) || (stepVol < 0 && newVol <= target)) {
@@ -234,38 +246,52 @@ export class SoundManager {
     osc.stop(this.ctx.currentTime + 0.5);
   }
 
-  playEndingMusic(startOffsetSeconds: number = 0, fadeDurationSeconds: number = 10) {
+  playEndingMusic(startOffsetSeconds: number = 0, fadeDurationSeconds: number = 5) {
     if (!this.endingAudio) {
         console.warn("Ending audio element not initialized");
         return;
     }
     
+    // Stop any existing BGM
     this.stopBgm();
     
-    console.log(`Triggering ending music with fade.`);
+    // Ensure any previous ending music fade interval is cleared
+    if (this.musicFadeInterval) {
+        clearInterval(this.musicFadeInterval);
+        this.musicFadeInterval = null;
+    }
     
+    // Reset volume and time
     this.endingAudio.pause();
     this.endingAudio.currentTime = startOffsetSeconds;
     this.endingAudio.volume = 0;
     
-    this.endingAudio.play()
-        .then(() => {
-            console.log("Ending music started. Fading in...");
-            let vol = 0;
-            const step = 1 / (fadeDurationSeconds * 10); 
-            
-            if (this.musicFadeInterval) clearInterval(this.musicFadeInterval);
-            
-            this.musicFadeInterval = window.setInterval(() => {
-                if (!this.endingAudio) return;
-                vol = Math.min(1, vol + step);
-                this.endingAudio.volume = vol;
-                if (vol >= 1) {
-                    if (this.musicFadeInterval) clearInterval(this.musicFadeInterval);
-                }
-            }, 100);
-        })
-        .catch(e => console.error("Failed to play ending music:", e));
+    const playPromise = this.endingAudio.play();
+    
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+          let vol = 0;
+          const intervalStep = 50; // ms
+          const totalSteps = (fadeDurationSeconds * 1000) / intervalStep;
+          const volStep = 1.0 / totalSteps;
+
+          this.musicFadeInterval = window.setInterval(() => {
+              if (!this.endingAudio) {
+                  if (this.musicFadeInterval) clearInterval(this.musicFadeInterval);
+                  return;
+              }
+              
+              vol = Math.min(1.0, vol + volStep);
+              this.endingAudio.volume = vol;
+              
+              if (vol >= 1.0) {
+                  if (this.musicFadeInterval) clearInterval(this.musicFadeInterval);
+              }
+          }, intervalStep);
+      }).catch(e => {
+          console.error("Failed to play ending music:", e);
+      });
+    }
   }
 
   stopEndingMusic() {
