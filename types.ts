@@ -57,10 +57,12 @@ export interface Powerup extends Entity {
   floatOffset: number;
 }
 
+export type LetterVariant = 'NORMAL' | 'GOLDEN' | 'SAD' | 'VILLAIN';
+
 export interface Letter extends Entity {
   message: string;
   floatOffset: number;
-  isGolden?: boolean;
+  variant: LetterVariant;
 }
 
 export interface Projectile extends Entity {

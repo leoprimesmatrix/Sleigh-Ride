@@ -77,6 +77,19 @@ export const WISHES = [
   "I wish to be brave tomorrow."
 ];
 
+export const SAD_WISHES = [
+  "Santa forgot about us.",
+  "We are abandoned.",
+  "Why didn't you come?",
+  "Christmas is a lie.",
+  "No toys this year.",
+  "Left in the cold.",
+  "Nobody cares.",
+  "Hope is gone."
+];
+
+export const VILLAIN_MESSAGE = "Santa forgot about us. He ABANDONED us. Hatred towards us. I will remember this for the rest of my life. Christmas will never be the same again once I find Santa... and make him pay for creating hopes and dreams for me and then destroying them for never coming.";
+
 export const NARRATIVE_LETTERS = [
     { progress: 0.30, message: "Dear Santa, I don't need toys. I just want my dad to come home safe." },
     { progress: 0.60, message: "I'm too old to believe, but... my little sister isn't. Please visit her." },

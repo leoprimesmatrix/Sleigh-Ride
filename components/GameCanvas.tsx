@@ -14,7 +14,8 @@ import {
   BackgroundLayer,
   DialogueLine,
   GameMode,
-  Landmark
+  Landmark,
+  LetterVariant
 } from '../types.ts';
 import { 
   CANVAS_WIDTH, 
@@ -28,6 +29,8 @@ import {
   VICTORY_DISTANCE,
   BASE_SPEED,
   WISHES,
+  SAD_WISHES,
+  VILLAIN_MESSAGE,
   NARRATIVE_LETTERS,
   STORY_MOMENTS,
   LANDMARKS,
@@ -80,11 +83,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const joyRideTimerRef = useRef(0);
   const masterGiftDroppedRef = useRef(false);
   const cutsceneExplosionTriggeredRef = useRef(false);
+  const villainLetterSpawnedRef = useRef(false);
 
   const collectedPowerupsRef = useRef<{ id: number; type: PowerupType }[]>([]);
   const wishesCollectedCountRef = useRef(0);
   const activeDialogueRef = useRef<DialogueLine | null>(null);
-  const activeWishRef = useRef<string | null>(null);
+  const activeWishRef = useRef<{ message: string, variant: LetterVariant } | null>(null);
   const endingMusicTriggeredRef = useRef(false);
   const triggeredLandmarksRef = useRef<Set<string>>(new Set());
   const triggeredLettersRef = useRef<Set<string>>(new Set());
@@ -197,7 +201,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     activeHealing: 0,
     collectedPowerups: [] as { id: number; type: PowerupType }[],
     activeDialogue: null as DialogueLine | null,
-    activeWish: null as string | null,
+    activeWish: null as { message: string, variant: LetterVariant } | null,
     wishesCollected: 0
   });
 
@@ -326,6 +330,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       joyRideTimerRef.current = 0;
       masterGiftDroppedRef.current = false;
       cutsceneExplosionTriggeredRef.current = false;
+      villainLetterSpawnedRef.current = false;
       
       lastLevelIndexRef.current = -1;
       soundManager.stopBgm();
@@ -536,7 +541,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                           floatOffset: 0,
                           markedForDeletion: false,
                           message: `Unfreeze time!`,
-                          isGolden: true
+                          variant: 'GOLDEN'
                       });
                   }
               }
@@ -551,7 +556,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                       x: CANVAS_WIDTH + 100,
                       y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
                       width: 40, height: 30, floatOffset: 0, markedForDeletion: false,
-                      message: nl.message, isGolden: true
+                      message: nl.message, variant: 'GOLDEN'
                   });
               }
           });
@@ -631,16 +636,43 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       const letterSpawnChance = (gameMode === GameMode.STORY && levelIndex === 4) ? 0.02 : 0.005;
       
       if (!isEndingSequenceRef.current && Math.random() < letterSpawnChance * timeScale) {
-          const msg = WISHES[Math.floor(Math.random() * WISHES.length)];
-          const isGolden = (gameMode === GameMode.STORY && levelIndex === 4);
-          lettersRef.current.push({
-              id: Date.now() + Math.random(),
-              x: CANVAS_WIDTH + 100,
-              y: Math.random() * (CANVAS_HEIGHT - 250) + 50,
-              width: 30, height: 20, floatOffset: Math.random() * Math.PI, markedForDeletion: false,
-              message: msg,
-              isGolden: isGolden
-          });
+          let msg = "";
+          let variant: LetterVariant = 'NORMAL';
+
+          if (gameMode === GameMode.STORY && levelIndex === 4) {
+              if (wishesCollectedCountRef.current < REQUIRED_WISHES) {
+                   // Bad ending route spawning
+                   if (progressRatio > 0.96 && !villainLetterSpawnedRef.current) {
+                        msg = VILLAIN_MESSAGE;
+                        variant = 'VILLAIN';
+                        villainLetterSpawnedRef.current = true;
+                   } else {
+                        msg = SAD_WISHES[Math.floor(Math.random() * SAD_WISHES.length)];
+                        variant = 'SAD';
+                   }
+              } else {
+                  // Good ending route
+                  msg = WISHES[Math.floor(Math.random() * WISHES.length)];
+                  variant = 'GOLDEN';
+              }
+          } else {
+              msg = WISHES[Math.floor(Math.random() * WISHES.length)];
+              variant = 'NORMAL';
+          }
+
+          // Don't spawn sad/normal letters if we just spawned the villain one to avoid clutter
+          if (variant !== 'VILLAIN' && villainLetterSpawnedRef.current && progressRatio > 0.96) {
+             // skip
+          } else {
+              lettersRef.current.push({
+                  id: Date.now() + Math.random(),
+                  x: CANVAS_WIDTH + 100,
+                  y: Math.random() * (CANVAS_HEIGHT - 250) + 50,
+                  width: 30, height: 20, floatOffset: Math.random() * Math.PI, markedForDeletion: false,
+                  message: msg,
+                  variant: variant
+              });
+          }
       }
 
       obstaclesRef.current.forEach(obs => {
@@ -720,19 +752,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           if (letter.x + letter.width < -50) letter.markedForDeletion = true;
           if (!cinematicMode && checkCollision(player, letter)) {
               letter.markedForDeletion = true;
-              soundManager.playCollectWish();
-              const color = letter.isGolden ? '#fbbf24' : '#fcd34d';
-              createParticles(letter.x, letter.y, ParticleType.SPARKLE, 15, color); 
-              saturationRef.current = Math.min(1.0, saturationRef.current + 0.2);
-              if (letter.isGolden) {
-                   shakeRef.current = 10;
-                   particlesRef.current.push({
-                       id: Math.random(), type: ParticleType.SHOCKWAVE, x: letter.x, y: letter.y, radius: 10, vx: 0, vy: 0, alpha: 1, color: 'white', life: 1, maxLife: 1, growth: 800
-                   });
+              
+              const isSadOrVillain = letter.variant === 'SAD' || letter.variant === 'VILLAIN';
+              const isGolden = letter.variant === 'GOLDEN';
+              
+              if (isSadOrVillain) {
+                 // No sound or a different sound could be better, but re-using collect for now maybe? 
+                 // Actually, let's silence it or play crash for bad vibes? 
+                 // Let's just play collect for feedback but no score/particle joy.
+                 soundManager.playCollectWish();
+                 if (letter.variant === 'VILLAIN') {
+                     shakeRef.current = 15;
+                     createParticles(letter.x, letter.y, ParticleType.SHOCKWAVE, 1, '#ef4444');
+                 } else {
+                     createParticles(letter.x, letter.y, ParticleType.DEBRIS, 5, '#94a3b8');
+                 }
+                 
+              } else {
+                 soundManager.playCollectWish();
+                 const color = isGolden ? '#fbbf24' : '#fcd34d';
+                 createParticles(letter.x, letter.y, ParticleType.SPARKLE, 15, color); 
+                 saturationRef.current = Math.min(1.0, saturationRef.current + 0.2);
+                 if (isGolden) {
+                      shakeRef.current = 10;
+                      particlesRef.current.push({
+                          id: Math.random(), type: ParticleType.SHOCKWAVE, x: letter.x, y: letter.y, radius: 10, vx: 0, vy: 0, alpha: 1, color: 'white', life: 1, maxLife: 1, growth: 800
+                      });
+                 }
+                 wishesCollectedCountRef.current += 1;
               }
-              activeWishRef.current = letter.message;
-              wishesCollectedCountRef.current += 1; // Increment wish count
-              setTimeout(() => { if (activeWishRef.current === letter.message) activeWishRef.current = null; }, 4000);
+
+              activeWishRef.current = { message: letter.message, variant: letter.variant };
+              
+              const displayTime = letter.variant === 'VILLAIN' ? 8000 : 4000;
+              setTimeout(() => { if (activeWishRef.current?.message === letter.message) activeWishRef.current = null; }, displayTime);
           }
       });
 
@@ -947,7 +1000,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               ctx.restore();
 
               lettersRef.current.forEach(l => {
-                  if (l.isGolden) drawLetter(ctx, l);
+                  if (l.variant === 'GOLDEN') drawLetter(ctx, l);
               });
           }
 
@@ -1237,19 +1290,38 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
   const drawLetter = (ctx: CanvasRenderingContext2D, letter: Letter) => {
       ctx.save(); ctx.translate(letter.x, letter.y);
       ctx.rotate(Math.sin(letter.floatOffset) * 0.2);
-      ctx.fillStyle = letter.isGolden ? "#fef3c7" : "#f1f5f9";
-      ctx.shadowColor = letter.isGolden ? "#fbbf24" : "rgba(0,0,0,0.3)";
-      ctx.shadowBlur = letter.isGolden ? 15 : 5;
+      
+      const isGolden = letter.variant === 'GOLDEN';
+      const isSad = letter.variant === 'SAD';
+      const isVillain = letter.variant === 'VILLAIN';
+
+      let bgColor = "#f1f5f9";
+      let shadowColor = "rgba(0,0,0,0.3)";
+      let flapColor = "#e2e8f0";
+      let stampColor = "#ef4444";
+      let borderColor = "";
+
+      if (isGolden) {
+         bgColor = "#fef3c7"; shadowColor = "#fbbf24"; flapColor = "#fde68a"; borderColor = "#d97706";
+      } else if (isSad) {
+         bgColor = "#cbd5e1"; shadowColor = "rgba(0,0,0,0.5)"; flapColor = "#94a3b8"; stampColor = "#475569";
+      } else if (isVillain) {
+         bgColor = "#1a0505"; shadowColor = "#ef4444"; flapColor = "#450a0a"; stampColor = "#7f1d1d"; borderColor = "#ef4444";
+      }
+
+      ctx.fillStyle = bgColor;
+      ctx.shadowColor = shadowColor;
+      ctx.shadowBlur = (isGolden || isVillain) ? 15 : 5;
       
       ctx.fillRect(0, 0, letter.width, letter.height);
-      ctx.fillStyle = letter.isGolden ? "#fde68a" : "#e2e8f0";
+      ctx.fillStyle = flapColor;
       ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(letter.width/2, letter.height/1.5); ctx.lineTo(letter.width, 0); ctx.fill();
       
-      if (letter.isGolden) {
-          ctx.strokeStyle = "#d97706"; ctx.lineWidth = 1; ctx.strokeRect(0,0, letter.width, letter.height);
+      if (borderColor) {
+          ctx.strokeStyle = borderColor; ctx.lineWidth = 1; ctx.strokeRect(0,0, letter.width, letter.height);
       }
       
-      ctx.fillStyle = "#ef4444";
+      ctx.fillStyle = stampColor;
       ctx.beginPath(); ctx.arc(letter.width/2, letter.height/2.5, 4, 0, Math.PI*2); ctx.fill();
       
       ctx.restore();

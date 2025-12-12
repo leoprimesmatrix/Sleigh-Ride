@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { Heart, Snowflake, Clock, Zap, Sparkles, Plus, Mail } from 'lucide-react';
-import { Player, PowerupType, DialogueLine } from '../types.ts';
+import { Heart, Snowflake, Clock, Zap, Sparkles, Plus, Mail, Skull } from 'lucide-react';
+import { Player, PowerupType, DialogueLine, LetterVariant } from '../types.ts';
 import { POWERUP_COLORS, REQUIRED_WISHES } from '../constants.ts';
 
 interface UIOverlayProps {
@@ -14,7 +14,7 @@ interface UIOverlayProps {
   score: number;
   collectedPowerups: { id: number; type: PowerupType }[];
   activeDialogue: DialogueLine | null;
-  activeWish: string | null;
+  activeWish: { message: string, variant: LetterVariant } | null;
   wishesCollected: number;
 }
 
@@ -85,16 +85,45 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         })}
       </div>
 
-      {activeWish && (
+      {activeWish && activeWish.variant !== 'VILLAIN' && (
           <div className="absolute top-28 right-4 flex flex-col items-end animate-slide-in-right z-30">
-             <div className="bg-amber-100/95 text-amber-900 pl-4 pr-6 py-2 rounded-l-full shadow-xl border-l-4 border-amber-400 backdrop-blur-sm max-w-xs text-right flex items-center gap-3 transform hover:scale-105 transition-transform">
-                 <div className="bg-amber-200/50 p-2 rounded-full">
-                    <Mail size={18} className="text-amber-700" />
+             <div className={`
+                 pl-4 pr-6 py-2 rounded-l-full shadow-xl border-l-4 backdrop-blur-sm max-w-xs text-right flex items-center gap-3 transform hover:scale-105 transition-transform
+                 ${activeWish.variant === 'SAD' 
+                    ? 'bg-slate-800/95 text-slate-300 border-slate-500' 
+                    : 'bg-amber-100/95 text-amber-900 border-amber-400'
+                 }
+             `}>
+                 <div className={`p-2 rounded-full ${activeWish.variant === 'SAD' ? 'bg-slate-700/50' : 'bg-amber-200/50'}`}>
+                    {activeWish.variant === 'SAD' 
+                      ? <Mail size={18} className="text-slate-400" />
+                      : <Mail size={18} className="text-amber-700" />
+                    }
                  </div>
                  <div className="flex flex-col">
-                     <span className="text-[10px] uppercase tracking-widest text-amber-600/70 font-bold">Wish Collected</span>
-                     <p className="font-christmas text-lg leading-tight italic">"{activeWish}"</p>
+                     <span className={`text-[10px] uppercase tracking-widest font-bold ${activeWish.variant === 'SAD' ? 'text-slate-500' : 'text-amber-600/70'}`}>
+                        {activeWish.variant === 'SAD' ? 'Lost Letter' : 'Wish Collected'}
+                     </span>
+                     <p className="font-christmas text-lg leading-tight italic">"{activeWish.message}"</p>
                  </div>
+             </div>
+          </div>
+      )}
+
+      {/* Villain Card Display */}
+      {activeWish && activeWish.variant === 'VILLAIN' && (
+          <div className="absolute inset-0 flex items-center justify-center z-50 animate-fade-in-up pointer-events-auto">
+             <div className="relative bg-slate-950 border-4 border-red-900 p-8 rounded-lg shadow-[0_0_50px_rgba(220,38,38,0.5)] max-w-2xl text-center transform scale-100 hover:scale-105 transition-transform duration-500">
+                <div className="absolute -top-6 -right-6 bg-red-900 rounded-full p-4 border-2 border-red-600 animate-pulse">
+                    <Skull size={32} className="text-white" />
+                </div>
+                <h3 className="text-3xl font-christmas text-red-500 mb-6 uppercase tracking-widest drop-shadow-md">A Promise of Vengeance</h3>
+                <p className="text-xl md:text-2xl font-serif text-slate-300 leading-relaxed italic border-t border-b border-red-900/50 py-6">
+                    "{activeWish.message}"
+                </p>
+                <div className="mt-4 text-xs text-red-700 uppercase tracking-[0.3em] font-bold">
+                    The Origin of Evil
+                </div>
              </div>
           </div>
       )}
