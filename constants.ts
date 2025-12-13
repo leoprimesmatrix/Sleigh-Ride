@@ -88,7 +88,11 @@ export const SAD_WISHES = [
   "Hope is gone."
 ];
 
-export const VILLAIN_MESSAGE = "Santa forgot about us. He ABANDONED us. Hatred towards us. I will remember this for the rest of my life. Christmas will never be the same again once I find Santa... and make him pay for creating hopes and dreams for me and then destroying them for never coming.";
+export const VILLAIN_MESSAGES = [
+    "Santa forgot about us. He ABANDONED us. Hatred towards us. I will remember this for the rest of my life. Christmas will never be the same again once I find Santa... and make him pay for creating hopes and dreams for me and then destroying them for never coming.",
+    "I spent the whole year trying to be good, defending the idea of you to my friends, only to be left in the dark. It feels like a cruel joke to give someone hope just to watch it freeze over. I’m done with magic; from now on, I only believe in what I can see.",
+    "They said you brought joy to the world, but you skipped our house like we didn't exist. It’s not about the presents anymore; it’s about the fact that you didn't show up when we needed that spark the most. Consider my belief in you officially extinguished."
+];
 
 export const NARRATIVE_LETTERS = [
     { progress: 0.30, message: "Dear Santa, I don't need toys. I just want my dad to come home safe." },

@@ -30,7 +30,7 @@ import {
   BASE_SPEED,
   WISHES,
   SAD_WISHES,
-  VILLAIN_MESSAGE,
+  VILLAIN_MESSAGES,
   NARRATIVE_LETTERS,
   STORY_MOMENTS,
   LANDMARKS,
@@ -643,7 +643,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               if (wishesCollectedCountRef.current < REQUIRED_WISHES) {
                    // Bad ending route spawning
                    if (progressRatio > 0.96 && !villainLetterSpawnedRef.current) {
-                        msg = VILLAIN_MESSAGE;
+                        msg = VILLAIN_MESSAGES[Math.floor(Math.random() * VILLAIN_MESSAGES.length)];
                         variant = 'VILLAIN';
                         villainLetterSpawnedRef.current = true;
                    } else {
