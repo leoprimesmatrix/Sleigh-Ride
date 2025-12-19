@@ -4,7 +4,7 @@ import GameCanvas from './components/GameCanvas.tsx';
 import VictorySequence from './components/VictorySequence.tsx';
 import BadEndingSequence from './components/BadEndingSequence.tsx';
 import { GameState, PowerupType, GameMode } from './types.ts';
-import { POWERUP_COLORS } from './constants.ts';
+import { POWERUP_COLORS, REQUIRED_WISHES } from './constants.ts';
 import { Play, RefreshCw, HelpCircle, ArrowLeft, Loader2, FileText, X, Bell, Gift, Lock, Infinity as InfinityIcon } from 'lucide-react';
 
 const CURRENT_VERSION = '1.0.0';
@@ -243,7 +243,7 @@ const App: React.FC = () => {
                       <div className="space-y-4">
                           <div>
                               <h4 className="font-bold text-green-400 flex items-center gap-2">🌟 The Mission</h4>
-                              <p className="mt-1">Navigate through 5 atmospheric levels. Your goal is simple but difficult: Collect <strong className="text-white">30 Wishes</strong> (Letters) scattered throughout the world. If you reach the end without them, the magic won't be strong enough to start Christmas.</p>
+                              <p className="mt-1">Navigate through 5 atmospheric levels. Your goal is simple but difficult: Collect <strong className="text-white">80 Wishes</strong> (Letters) scattered throughout the world. If you reach the end without them, the magic won't be strong enough to start Christmas.</p>
                           </div>
                           
                           <div>
@@ -367,7 +367,7 @@ const App: React.FC = () => {
                       {introStage >= 2 && (
                           <div className="animate-slide-up">
                              <p className="text-lg md:text-xl text-yellow-300 font-bold mt-4">
-                                "Collect 30 Wishes (envelopes) and save Christmas."
+                                "Collect 80 Wishes (envelopes) and save Christmas."
                              </p>
                           </div>
                       )}

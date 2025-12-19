@@ -8,7 +8,7 @@ export const JUMP_STRENGTH = -8;
 export const FLIGHT_LIFT = -0.5;
 export const BASE_SPEED = 5;
 
-export const REQUIRED_WISHES = 30;
+export const REQUIRED_WISHES = 80;
 
 export const POWERUP_COLORS: Record<PowerupType, string> = {
   [PowerupType.SPEED]: '#ef4444',
@@ -51,7 +51,7 @@ export const LEVELS: LevelConfig[] = [
     backgroundGradient: ['#e2e8f0', '#f8fafc'],
     obstacleSpeedMultiplier: 1.5,
     spawnRateMultiplier: 1.4,
-    weatherIntensity: 10,
+    weatherIntensity: 30, // Intense blizzard
   },
   {
     name: "The Final Delivery",
@@ -101,13 +101,13 @@ export const NARRATIVE_LETTERS = [
 ];
 
 export const STORY_MOMENTS: { progress: number; dialogue: DialogueLine }[] = [
-  { progress: 0.01, dialogue: { id: 'act1_start', speaker: 'Rudolph', text: "The sleigh is heavy with hope tonight, Santa! Let's fly!" } },
+  { progress: 0.01, dialogue: { id: 'act1_start', speaker: 'Rudolph', text: "Let's save Christmas, Santa!" } },
   
-  { progress: 0.20, dialogue: { id: 'act2_start', speaker: 'Rudolph', text: "The world... it's losing its color. Everything is so gray." } },
-  { progress: 0.22, dialogue: { id: 'act2_santa', speaker: 'Santa', text: "They have forgotten the magic. We must re-ignite it, one gift at a time." } },
+  { progress: 0.20, dialogue: { id: 'act2_start', speaker: 'Rudolph', text: "The world is becoming gray... we must collect the letters!" } },
+  { progress: 0.22, dialogue: { id: 'act2_santa', speaker: 'Santa', text: "We will keep this world alive, old friend." } },
   { progress: 0.35, dialogue: { id: 'act2_clock', speaker: 'Rudolph', text: "Look! The Old Clock Tower! It's frozen in time!" } },
 
-  { progress: 0.50, dialogue: { id: 'act3_start', speaker: 'Rudolph', text: "The ocean... it's so quiet. Are we the only ones left who believe?" } },
+  { progress: 0.50, dialogue: { id: 'act3_start', speaker: 'Rudolph', text: "So much silence... just... an OCEAN of silence..." } },
   { progress: 0.55, dialogue: { id: 'act3_santa', speaker: 'Santa', text: "Silence is not empty, old friend. It is full of answers. Keep flying." } },
 
   { progress: 0.70, dialogue: { id: 'act4_start', speaker: 'Rudolph', text: "I can't see! The storm is too thick! My light is flickering!" } },

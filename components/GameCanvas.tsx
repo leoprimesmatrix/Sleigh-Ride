@@ -757,9 +757,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
               const isGolden = letter.variant === 'GOLDEN';
               
               if (isSadOrVillain) {
-                 // No sound or a different sound could be better, but re-using collect for now maybe? 
-                 // Actually, let's silence it or play crash for bad vibes? 
-                 // Let's just play collect for feedback but no score/particle joy.
                  soundManager.playCollectWish();
                  if (letter.variant === 'VILLAIN') {
                      shakeRef.current = 15;
@@ -779,7 +776,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
                           id: Math.random(), type: ParticleType.SHOCKWAVE, x: letter.x, y: letter.y, radius: 10, vx: 0, vy: 0, alpha: 1, color: 'white', life: 1, maxLife: 1, growth: 800
                       });
                  }
-                 wishesCollectedCountRef.current += 1;
+                 // ONLY increment if we are NOT in the final delivery level
+                 if (levelIndex !== 4) {
+                    wishesCollectedCountRef.current += 1;
+                 }
               }
 
               activeWishRef.current = { message: letter.message, variant: letter.variant };
@@ -806,7 +806,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       });
 
       if (Math.random() < 0.4 * level.weatherIntensity * timeScale) {
-        createParticles(CANVAS_WIDTH + 10, Math.random() * CANVAS_HEIGHT, ParticleType.SNOW, 1, 'white');
+        // In blizzard biome, snow is much faster and more horizontal
+        const pType = ParticleType.SNOW;
+        const blizzardMode = levelIndex === 3;
+        createParticles(CANVAS_WIDTH + 10, Math.random() * CANVAS_HEIGHT, pType, 1, 'white', blizzardMode);
       }
 
       particlesRef.current.forEach(p => {
@@ -816,6 +819,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         p.alpha = p.life / p.maxLife;
         p.radius += p.growth * dt; 
         if (p.type === ParticleType.SNOW) {
+            // Strong wind effect
             p.x -= currentSpeed * 0.5 * timeScale;
             p.y += Math.sin(timestamp / 500 + p.id) * 0.5;
         } else if (p.type === ParticleType.FIRE || p.type === ParticleType.SMOKE || p.type === ParticleType.LIFE) {
@@ -917,8 +921,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ctx.restore();
 
         drawBgClouds(ctx);
-        drawParallaxLayer(ctx, bgLayersRef.current[0], CANVAS_HEIGHT - 150, "#334155", timestamp);
-        drawParallaxLayer(ctx, bgLayersRef.current[1], CANVAS_HEIGHT - 80, "#475569", timestamp, bgTreesRef.current[1]); 
+        drawParallaxLayer(ctx, bgLayersRef.current[0], CANVAS_HEIGHT - 150, "#334155", timestamp, undefined, levelIndex);
+        drawParallaxLayer(ctx, bgLayersRef.current[1], CANVAS_HEIGHT - 80, "#475569", timestamp, bgTreesRef.current[1], levelIndex); 
       }
 
       ctx.save();
@@ -927,7 +931,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       ctx.translate(dx, dy);
 
       if (!promoMode) {
-        drawParallaxLayer(ctx, bgLayersRef.current[2], CANVAS_HEIGHT - 20, "#cbd5e1", timestamp, bgTreesRef.current[2]); 
+        drawParallaxLayer(ctx, bgLayersRef.current[2], CANVAS_HEIGHT - 20, "#cbd5e1", timestamp, bgTreesRef.current[2], levelIndex); 
       }
 
       if (!cinematicMode) {
@@ -1072,15 +1076,15 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     });
   };
 
-  const createParticles = (x: number, y: number, type: ParticleType, count: number, color: string) => {
+  const createParticles = (x: number, y: number, type: ParticleType, count: number, color: string, blizzard: boolean = false) => {
     for (let i = 0; i < count; i++) {
-      const speed = Math.random() * 5 + 2;
-      const angle = Math.random() * Math.PI * 2;
+      const speed = blizzard ? Math.random() * 20 + 20 : Math.random() * 5 + 2;
+      const angle = blizzard ? Math.PI + (Math.random() - 0.5) * 0.2 : Math.random() * Math.PI * 2;
       particlesRef.current.push({
         id: Math.random(), type, x, y,
         radius: type === ParticleType.SNOW ? Math.random() * 3 + 1 : Math.random() * 4 + 2,
-        vx: type === ParticleType.SNOW ? -Math.random() * 3 - 2 : Math.cos(angle) * speed,
-        vy: type === ParticleType.SNOW ? Math.random() * 2 + 1 : Math.sin(angle) * speed,
+        vx: type === ParticleType.SNOW ? (blizzard ? -speed : -Math.random() * 3 - 2) : Math.cos(angle) * speed,
+        vy: type === ParticleType.SNOW ? (blizzard ? (Math.random() - 0.5) * 5 : Math.random() * 2 + 1) : Math.sin(angle) * speed,
         alpha: 1, color, life: Math.random() * 1 + 0.5, maxLife: 1.5, growth: 0
       });
     }
@@ -1110,7 +1114,26 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
     );
   };
 
-  const drawParallaxLayer = (ctx: CanvasRenderingContext2D, layer: BackgroundLayer, baseY: number, color: string, timestamp: number, trees?: boolean[]) => {
+  const drawParallaxLayer = (ctx: CanvasRenderingContext2D, layer: BackgroundLayer, baseY: number, color: string, timestamp: number, trees?: boolean[], levelIndex?: number) => {
+      const isOcean = levelIndex === 2;
+      
+      if (isOcean) {
+         // Ocean waves instead of terrain
+         ctx.fillStyle = color;
+         ctx.globalAlpha = 0.6;
+         ctx.beginPath();
+         ctx.moveTo(0, CANVAS_HEIGHT);
+         for (let x = 0; x <= CANVAS_WIDTH; x += 20) {
+             const waveOffset = Math.sin((x + layer.offset) * 0.01 + timestamp * 0.002) * 20;
+             ctx.lineTo(x, baseY + waveOffset);
+         }
+         ctx.lineTo(CANVAS_WIDTH, CANVAS_HEIGHT);
+         ctx.lineTo(0, CANVAS_HEIGHT);
+         ctx.fill();
+         ctx.globalAlpha = 1.0;
+         return;
+      }
+
       ctx.fillStyle = color;
       ctx.beginPath(); ctx.moveTo(0, CANVAS_HEIGHT);
       for (let i = 0; i < layer.points.length - 1; i++) {
