@@ -45,9 +45,10 @@ interface GameCanvasProps {
   setGameState: (state: GameState) => void;
   onWin: () => void;
   gameMode: GameMode;
+  isMobile?: boolean;
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin, gameMode }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin, gameMode, isMobile = false }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const [debugMenuOpen, setDebugMenuOpen] = useState(false);
@@ -229,7 +230,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
     };
     
-    // Legacy touch handler removal (logic moved to explicit divs)
     const handleTouch = () => {
        if (gameState === GameState.MENU) soundManager.init();
     };
@@ -1352,7 +1352,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
         ref={canvasRef}
         width={CANVAS_WIDTH}
         height={CANVAS_HEIGHT}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
       />
       
       {gameState !== GameState.INTRO && !cinematicMode && !isEndingSequenceRef.current && (
@@ -1429,26 +1429,29 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       )}
       
       {/* Mobile Controls Overlay */}
-      <div 
-        className="absolute inset-0 md:hidden z-40 pointer-events-auto touch-none"
-        onTouchStart={(e) => {
-            if(!isEndingSequenceRef.current) {
-                playerRef.current.vy = JUMP_STRENGTH; 
-                soundManager.playJump();
-            }
-        }}
-      >
-        {/* Dedicated Shoot Button - Bottom Right */}
+      {isMobile && (
         <div 
-            className="absolute bottom-6 right-6 w-20 h-20 bg-red-600/60 border-2 border-red-400 rounded-full flex items-center justify-center active:bg-red-500 active:scale-95 transition-all shadow-[0_0_15px_rgba(220,38,38,0.5)] backdrop-blur-sm group"
-            onTouchStart={(e) => { 
-                e.stopPropagation(); // Stop bubbling to prevent jumping
-                if(!isEndingSequenceRef.current) shootSnowball(); 
+            className="absolute inset-0 z-40 pointer-events-auto touch-none"
+            onTouchStart={(e) => {
+                // Main screen tap is JUMP
+                if(!isEndingSequenceRef.current) {
+                    playerRef.current.vy = JUMP_STRENGTH; 
+                    soundManager.playJump();
+                }
             }}
         >
-             <Crosshair size={36} className="text-white drop-shadow-md group-active:scale-90 transition-transform" />
+            {/* Dedicated Shoot Button - Bottom Right */}
+            <div 
+                className="absolute bottom-6 right-6 w-20 h-20 bg-red-600/60 border-2 border-red-400 rounded-full flex items-center justify-center active:bg-red-500 active:scale-95 transition-all shadow-[0_0_15px_rgba(220,38,38,0.5)] backdrop-blur-sm group"
+                onTouchStart={(e) => { 
+                    e.stopPropagation(); // Stop bubbling to prevent jumping when shooting
+                    if(!isEndingSequenceRef.current) shootSnowball(); 
+                }}
+            >
+                <Crosshair size={36} className="text-white drop-shadow-md group-active:scale-90 transition-transform" />
+            </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
