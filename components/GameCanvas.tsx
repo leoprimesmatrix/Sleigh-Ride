@@ -8,14 +8,14 @@ import {
   Letter,
   Projectile, 
   Particle, 
-  ParticleType,
-  PowerupType,
-  Entity,
-  BackgroundLayer,
-  DialogueLine,
-  GameMode,
-  Landmark,
-  LetterVariant
+  ParticleType, 
+  PowerupType, 
+  Entity, 
+  BackgroundLayer, 
+  DialogueLine, 
+  GameMode, 
+  Landmark, 
+  LetterVariant 
 } from '../types.ts';
 import { 
   CANVAS_WIDTH, 
@@ -24,21 +24,21 @@ import {
   JUMP_STRENGTH, 
   LEVELS, 
   LEVEL_THRESHOLDS, 
-  POWERUP_COLORS,
-  TOTAL_GAME_TIME_SECONDS,
-  VICTORY_DISTANCE,
-  BASE_SPEED,
-  WISHES,
-  SAD_WISHES,
-  VILLAIN_MESSAGES,
-  NARRATIVE_LETTERS,
-  STORY_MOMENTS,
-  LANDMARKS,
-  REQUIRED_WISHES
+  POWERUP_COLORS, 
+  TOTAL_GAME_TIME_SECONDS, 
+  VICTORY_DISTANCE, 
+  BASE_SPEED, 
+  WISHES, 
+  SAD_WISHES, 
+  VILLAIN_MESSAGES, 
+  NARRATIVE_LETTERS, 
+  STORY_MOMENTS, 
+  LANDMARKS, 
+  REQUIRED_WISHES 
 } from '../constants.ts';
 import UIOverlay from './UIOverlay.tsx';
 import { soundManager } from '../audio.ts';
-import { Eye, EyeOff, Shield, Skull, Trophy, Camera, FastForward, Mail } from 'lucide-react';
+import { Eye, EyeOff, Shield, Skull, Trophy, Camera, FastForward, Mail, ArrowUp, Crosshair } from 'lucide-react';
 
 interface GameCanvasProps {
   gameState: GameState;
@@ -229,13 +229,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       }
     };
     
+    // Legacy touch handler removal (logic moved to explicit divs)
     const handleTouch = () => {
        if (gameState === GameState.MENU) soundManager.init();
-       if (gameState !== GameState.PLAYING) return;
-       if (!isEndingSequenceRef.current) {
-          playerRef.current.vy = JUMP_STRENGTH;
-          soundManager.playJump();
-       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -1432,9 +1428,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
           </div>
       )}
       
-      <div className="absolute inset-0 flex md:hidden z-40 pointer-events-auto">
-        <div className="w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {playerRef.current.vy = JUMP_STRENGTH; soundManager.playJump();} }} />
-        <div className="w-1/2 h-full" onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {shootSnowball();} }} />
+      {/* Mobile Controls Overlay */}
+      <div className="absolute inset-0 flex md:hidden z-40 pointer-events-auto touch-none">
+        <div 
+            className="w-1/2 h-full border-r border-white/5 active:bg-white/5 transition-colors flex items-center justify-center group"
+            onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {playerRef.current.vy = JUMP_STRENGTH; soundManager.playJump();} }}
+        >
+             <div className="opacity-0 active:opacity-100 transition-opacity bg-white/20 p-4 rounded-full">
+                 <ArrowUp size={32} className="text-white" />
+             </div>
+        </div>
+        <div 
+            className="w-1/2 h-full active:bg-white/5 transition-colors flex items-center justify-center group"
+            onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {shootSnowball();} }}
+        >
+             <div className="opacity-0 active:opacity-100 transition-opacity bg-white/20 p-4 rounded-full">
+                 <Crosshair size={32} className="text-white" />
+             </div>
+        </div>
       </div>
     </div>
   );

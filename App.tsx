@@ -5,7 +5,7 @@ import VictorySequence from './components/VictorySequence.tsx';
 import BadEndingSequence from './components/BadEndingSequence.tsx';
 import { GameState, PowerupType, GameMode } from './types.ts';
 import { POWERUP_COLORS, REQUIRED_WISHES } from './constants.ts';
-import { Play, RefreshCw, HelpCircle, ArrowLeft, Loader2, FileText, X, Bell, Gift, Lock, Infinity as InfinityIcon } from 'lucide-react';
+import { Play, RefreshCw, HelpCircle, ArrowLeft, Loader2, FileText, X, Bell, Gift, Lock, Infinity as InfinityIcon, Smartphone, RotateCcw } from 'lucide-react';
 
 const CURRENT_VERSION = '1.0.0';
 
@@ -23,10 +23,26 @@ const App: React.FC = () => {
 
   const [introStage, setIntroStage] = useState(0);
 
-  // Wrapper to capture state changes from GameCanvas
-  const handleGameStateChange = (newState: GameState) => {
-      setGameState(newState);
-  };
+  // Mobile & Orientation State
+  const [isLandscape, setIsLandscape] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+        const mobile = window.innerWidth < 1024 && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+        setIsMobile(mobile);
+        setIsLandscape(window.innerWidth >= window.innerHeight);
+    };
+    
+    handleResize(); 
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     const savedVersion = localStorage.getItem('sleigh_ride_version');
@@ -106,11 +122,25 @@ const App: React.FC = () => {
       setGameState(GameState.PLAYING);
   };
 
+  // Force Landscape Mode Screen
+  if (isMobile && !isLandscape) {
+    return (
+        <div className="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center p-8 text-center text-white animate-fade-in touch-none">
+             <div className="relative mb-8">
+                 <Smartphone size={64} className="text-slate-400 animate-pulse" />
+                 <RotateCcw size={32} className="absolute -right-4 -bottom-2 text-yellow-400 animate-spin-slow" />
+             </div>
+             <h2 className="text-3xl font-christmas text-yellow-400 mb-4">Please Rotate Device</h2>
+             <p className="text-slate-300">Sleigh Ride requires landscape mode for the best experience.</p>
+        </div>
+    );
+  }
+
   return (
-    <div className="h-screen overflow-y-auto bg-slate-950 flex flex-col items-center justify-center p-4 select-none font-sans">
+    <div className={`h-screen w-screen overflow-hidden bg-slate-950 flex flex-col items-center justify-center select-none font-sans ${isMobile ? 'p-0' : 'p-4'}`}>
       
       {gameState === GameState.MENU && !isLoading && (
-        <div className="text-center space-y-2 md:space-y-4 animate-fade-in w-full max-w-2xl my-auto py-2">
+        <div className="text-center space-y-2 md:space-y-4 animate-fade-in w-full max-w-2xl my-auto py-2 z-10 relative">
           <div className="w-full flex justify-center px-4">
              <div className="animate-bounce-slow w-full flex justify-center">
                  <img 
@@ -277,7 +307,7 @@ const App: React.FC = () => {
       )}
 
       {isLoading && (
-        <div className="flex flex-col items-center justify-center space-y-6 animate-fade-in">
+        <div className="flex flex-col items-center justify-center space-y-6 animate-fade-in z-20">
            <div className="relative">
              <div className="absolute inset-0 bg-green-500 blur-xl opacity-20 animate-pulse"></div>
              <Loader2 size={64} className="text-green-500 animate-spin relative z-10" />
@@ -289,7 +319,7 @@ const App: React.FC = () => {
       )}
 
       {gameState === GameState.HELP && (
-        <div className="w-full max-w-2xl bg-slate-900/90 p-8 rounded-2xl border border-slate-600 shadow-2xl backdrop-blur-md animate-slide-up">
+        <div className="w-full max-w-2xl bg-slate-900/90 p-8 rounded-2xl border border-slate-600 shadow-2xl backdrop-blur-md animate-slide-up z-20 relative">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-4xl font-christmas text-yellow-400">Powerups & Abilities</h2>
             <button onClick={() => setGameState(GameState.MENU)} className="text-slate-400 hover:text-white transition-colors">
@@ -334,7 +364,7 @@ const App: React.FC = () => {
       )}
 
       {(gameState === GameState.PLAYING || gameState === GameState.GAME_OVER || gameState === GameState.VICTORY || gameState === GameState.BAD_ENDING || gameState === GameState.INTRO) && (
-        <div className="relative w-full max-w-[1200px] aspect-[2/1] shadow-2xl rounded-xl overflow-hidden">
+        <div className={`relative ${isMobile ? 'w-full h-full border-none rounded-none' : 'w-full max-w-[1200px] aspect-[2/1] shadow-2xl rounded-xl border-4 border-slate-800'} overflow-hidden bg-black`}>
           <GameCanvas 
             gameState={gameState} 
             gameMode={gameMode}
@@ -427,7 +457,7 @@ const App: React.FC = () => {
         </div>
       )}
       
-      {gameState !== GameState.VICTORY && gameState !== GameState.MENU && gameState !== GameState.HELP && gameState !== GameState.INTRO && gameState !== GameState.BAD_ENDING && (
+      {gameState !== GameState.VICTORY && gameState !== GameState.MENU && gameState !== GameState.HELP && gameState !== GameState.INTRO && gameState !== GameState.BAD_ENDING && !isMobile && (
         <div className="mt-4 text-slate-500 text-xs text-center animate-pulse">
           Keyboard: SPACE (Jump) | Z (Shoot)
         </div>
