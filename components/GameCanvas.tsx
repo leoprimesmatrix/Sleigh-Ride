@@ -1429,22 +1429,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ gameState, setGameState, onWin,
       )}
       
       {/* Mobile Controls Overlay */}
-      <div className="absolute inset-0 flex md:hidden z-40 pointer-events-auto touch-none">
+      <div 
+        className="absolute inset-0 md:hidden z-40 pointer-events-auto touch-none"
+        onTouchStart={(e) => {
+            if(!isEndingSequenceRef.current) {
+                playerRef.current.vy = JUMP_STRENGTH; 
+                soundManager.playJump();
+            }
+        }}
+      >
+        {/* Dedicated Shoot Button - Bottom Right */}
         <div 
-            className="w-1/2 h-full border-r border-white/5 active:bg-white/5 transition-colors flex items-center justify-center group"
-            onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {playerRef.current.vy = JUMP_STRENGTH; soundManager.playJump();} }}
+            className="absolute bottom-6 right-6 w-20 h-20 bg-red-600/60 border-2 border-red-400 rounded-full flex items-center justify-center active:bg-red-500 active:scale-95 transition-all shadow-[0_0_15px_rgba(220,38,38,0.5)] backdrop-blur-sm group"
+            onTouchStart={(e) => { 
+                e.stopPropagation(); // Stop bubbling to prevent jumping
+                if(!isEndingSequenceRef.current) shootSnowball(); 
+            }}
         >
-             <div className="opacity-0 active:opacity-100 transition-opacity bg-white/20 p-4 rounded-full">
-                 <ArrowUp size={32} className="text-white" />
-             </div>
-        </div>
-        <div 
-            className="w-1/2 h-full active:bg-white/5 transition-colors flex items-center justify-center group"
-            onTouchStart={(e) => { e.preventDefault(); if(!isEndingSequenceRef.current) {shootSnowball();} }}
-        >
-             <div className="opacity-0 active:opacity-100 transition-opacity bg-white/20 p-4 rounded-full">
-                 <Crosshair size={32} className="text-white" />
-             </div>
+             <Crosshair size={36} className="text-white drop-shadow-md group-active:scale-90 transition-transform" />
         </div>
       </div>
     </div>
