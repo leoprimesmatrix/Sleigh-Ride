@@ -29,9 +29,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-        // Check primarily for touch capability to define "mobile/tablet" context for controls
-        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        setIsMobile(hasTouch);
+        const mobile = window.innerWidth < 1024 && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+        setIsMobile(mobile);
         setIsLandscape(window.innerWidth >= window.innerHeight);
     };
     
@@ -123,9 +122,8 @@ const App: React.FC = () => {
       setGameState(GameState.PLAYING);
   };
 
-  // Force Landscape Mode Screen on Mobile
-  // We only enforce this if it is a touch device and width is significantly smaller than desktop
-  if (isMobile && !isLandscape && window.innerWidth < 768) {
+  // Force Landscape Mode Screen
+  if (isMobile && !isLandscape) {
     return (
         <div className="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-center p-8 text-center text-white animate-fade-in touch-none">
              <div className="relative mb-8">
@@ -370,9 +368,10 @@ const App: React.FC = () => {
           <GameCanvas 
             gameState={gameState} 
             gameMode={gameMode}
-            setGameState={setGameState} 
+            setGameState={(newState) => {
+                 setGameState(newState);
+            }} 
             onWin={handleWin}
-            isMobile={isMobile}
           />
           
           {gameState === GameState.INTRO && !hasSeenIntro && (
