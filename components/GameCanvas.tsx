@@ -1,22 +1,19 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-  GameState, 
+import type { 
   Player, 
   Obstacle, 
   Powerup, 
   Letter,
   Projectile, 
   Particle, 
-  ParticleType, 
-  PowerupType, 
   Entity, 
   BackgroundLayer, 
   DialogueLine, 
-  GameMode, 
   Landmark, 
   LetterVariant 
 } from '../types.ts';
+import { GameState, ParticleType, PowerupType, GameMode } from '../types.ts';
 import { 
   CANVAS_WIDTH, 
   CANVAS_HEIGHT, 

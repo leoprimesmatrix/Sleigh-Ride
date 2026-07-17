@@ -1,5 +1,6 @@
 {
   "name": "Sleigh Ride",
   "description": "A polished festive adventure game where you guide Santa's sleigh, avoid obstacles, and deliver presents before midnight.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

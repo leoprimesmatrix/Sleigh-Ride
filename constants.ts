@@ -1,5 +1,6 @@
 
-import { LevelConfig, PowerupType, DialogueLine } from './types.ts';
+import { PowerupType } from './types.ts';
+import type { LevelConfig, DialogueLine } from './types.ts';
 
 export const CANVAS_WIDTH = 1200;
 export const CANVAS_HEIGHT = 600;

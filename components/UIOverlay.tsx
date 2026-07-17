@@ -1,7 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { Heart, Snowflake, Clock, Zap, Sparkles, Plus, Mail, Skull } from 'lucide-react';
-import { Player, PowerupType, DialogueLine, LetterVariant } from '../types.ts';
+import { PowerupType } from '../types.ts';
+import type { Player, DialogueLine, LetterVariant } from '../types.ts';
 import { POWERUP_COLORS, REQUIRED_WISHES } from '../constants.ts';
 
 interface UIOverlayProps {
